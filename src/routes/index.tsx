@@ -14,6 +14,7 @@ import { KPICard } from "@/components/planner/KPICard";
 import { VCSummary } from "@/components/planner/VCSummary";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Term } from "@/components/planner/Term";
 
 export const Route = createFileRoute("/")({
   head: () => ({
