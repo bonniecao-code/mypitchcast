@@ -14,6 +14,7 @@ import { KPICard } from "@/components/planner/KPICard";
 import { VCSummary } from "@/components/planner/VCSummary";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Term } from "@/components/planner/Term";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -105,18 +106,18 @@ function Index() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <KPICard label="MRR (final)" value={fmtCurrency(k.mrr)} hint={`Month ${assumptions.months}`} />
-          <KPICard label="ARR" value={fmtCurrency(k.arr)} tone="good" />
-          <KPICard label="LTV / CAC" value={`${k.ltvCac.toFixed(2)}x`} tone={k.ltvCac >= 3 ? "good" : k.ltvCac >= 1 ? "warn" : "bad"} hint="3x+ is healthy" />
-          <KPICard label="Break-even" value={k.breakEven ? `Mo ${k.breakEven}` : "—"} tone={k.breakEven ? "good" : "warn"} hint={k.breakEven ? "First profitable month" : "Not in horizon"} />
+          <KPICard term="mrr" label="MRR (final)" value={fmtCurrency(k.mrr)} hint={`Month ${assumptions.months}`} />
+          <KPICard term="arr" label="ARR" value={fmtCurrency(k.arr)} tone="good" />
+          <KPICard term="ltv-cac" label="LTV / CAC" value={`${k.ltvCac.toFixed(2)}x`} tone={k.ltvCac >= 3 ? "good" : k.ltvCac >= 1 ? "warn" : "bad"} hint="3x+ is healthy" />
+          <KPICard term="break-even" label="Break-even" value={k.breakEven ? `Mo ${k.breakEven}` : "—"} tone={k.breakEven ? "good" : "warn"} hint={k.breakEven ? "First profitable month" : "Not in horizon"} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <section className="lg:col-span-1 space-y-6">
-            <Panel title="Pricing tiers" subtitle="Free, subscription, one-time">
+            <Panel title="Pricing tiers" subtitle="SaaS · digital · physical · refills">
               <PricingBuilder tiers={tiers} onChange={setTiers} />
             </Panel>
-            <Panel title="Assumptions" subtitle="Growth, conversion, costs">
+            <Panel title="Assumptions" subtitle="Hover any label for plain-English help">
               <AssumptionsPanel value={assumptions} onChange={setAssumptions} />
             </Panel>
           </section>
@@ -139,16 +140,28 @@ function Index() {
               <VCSummary rows={rows} tiers={tiers} assumptions={assumptions} />
             </Panel>
 
-            <Panel title="Monthly table" subtitle="First 12 months">
+            <Panel title="Monthly table" subtitle="First 12 months — hover headers for definitions">
               <div className="overflow-x-auto -mx-4 sm:mx-0">
                 <table className="w-full text-xs num">
                   <thead className="text-muted-foreground border-b border-border">
                     <tr>
-                      {["Mo", "Visitors", "Signups", "New paid", "Active", "MRR", "Revenue", "Net"].map((h) => (
-                        <th key={h} className="text-right p-2 font-normal uppercase tracking-wider text-[10px]">{h}</th>
+                      {([
+                        { h: "Mo" },
+                        { h: "Visitors", term: "visitors" as const },
+                        { h: "Signups" },
+                        { h: "New paid" },
+                        { h: "Active", term: "active-paid" as const },
+                        { h: "MRR", term: "mrr" as const },
+                        { h: "Revenue" },
+                        { h: "Net", term: "net-cashflow" as const },
+                      ]).map(({ h, term }) => (
+                        <th key={h} className="text-right p-2 font-normal uppercase tracking-wider text-[10px]">
+                          {term ? <Term term={term}>{h}</Term> : h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
+
                   <tbody>
                     {rows.slice(0, 12).map((r) => (
                       <tr key={r.month} className="border-b border-border/50">
