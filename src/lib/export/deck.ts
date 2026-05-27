@@ -35,9 +35,7 @@ export function buildDeck(
   tiers: PricingTier[],
   assumptions: Assumptions,
   chartPng?: string,
-  companyName = "Your AI startup",
-  headlineOverride?: string,
-  bulletsOverride?: string[]
+  companyName = "Your AI startup"
 ): DeckData {
   const k = computeKPIs(rows, assumptions);
   const suggestedRaise = Math.max(0, -k.peakBurn) * 2 || 250_000;
@@ -62,8 +60,8 @@ export function buildDeck(
       monthsHorizon: assumptions.months,
     },
     pitch: {
-      headline: headlineOverride ?? `An AI product on a ${pricingLine || "tiered"} model, projecting ${fmtCurrency(k.arr)} ARR in ${assumptions.months} months.`,
-      bullets: bulletsOverride ?? [
+      headline: `An AI product on a ${pricingLine || "tiered"} model, projecting ${fmtCurrency(k.arr)} ARR in ${assumptions.months} months.`,
+      bullets: [
         `Reaches ${fmtCurrency(k.arr)} ARR by month ${assumptions.months} with ${fmtNumber(k.activePaid)} paying customers.`,
         `LTV/CAC of ${k.ltvCac.toFixed(2)}x — ${k.ltvCac >= 3 ? "healthy unit economics." : "needs to improve before scaling spend."}`,
         k.breakEven ? `Breaks even on month ${k.breakEven}.` : "Does not reach monthly break-even in horizon — extend or cut costs.",

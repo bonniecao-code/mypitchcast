@@ -1,50 +1,44 @@
-## Plan
+## Goal
+Add a one-click export from the **VC pitch summary** panel that produces a shareable **PDF** or **PowerPoint (.pptx)** of the deck.
 
-Three additions to Pitchcast, wired to Lovable AI (Gemini) via a server function.
+## UX
+- Two buttons in the VC summary panel header: **Download PDF** and **Download PPTX**.
+- Both run fully client-side (no backend), trigger a browser download named `pitchcast-summary.pdf` / `pitchcast-summary.pptx`.
+- Show a small spinner on the button while generating; disable both during export.
+- A toast on success / failure (using the existing `sonner` setup).
 
-### 1. AI onboarding chat hero (top of page)
-- New `src/components/planner/OnboardingChat.tsx` replaces the current hero block on `/`.
-- Single textarea: "Tell us about your product and how you'd like to make money." + Send button. Below it, 3 example prompts ("AI coding copilot", "Bio-sensor wearable", "Image-gen API").
-- On submit → calls a server function which calls Lovable AI with a structured-output tool schema and returns:
-  - `summary` (one-paragraph reformulation)
-  - `recommendedTiers` (array matching our `PricingTier` shape: name, type, price, mixPct, cogs?, repurchasesPerMonth?)
-  - `assumptionOverrides` (partial `Assumptions` — e.g. higher CAC for hardware, lower churn for prosumer)
-  - `pitchHeadline` + `pitchBullets[4]` to seed the VC summary
-- Renders the response inline as a card with two buttons: **Apply to my plan** (overwrites current tiers/assumptions + seeds VC summary) and **Add as AI suggestion tab** (puts the tiers into the new second pricing tab only). Loading state with spinner + 402/429 toasts.
-- Persists last AI response in localStorage so refresh keeps it.
+## Content of the exported deck
+Each export contains the same 4 slides, built from the live forecast data already in scope (`rows`, `tiers`, `assumptions`, `KPIs`):
 
-### 2. Second pricing tab — "AI suggested"
-- Wrap `PricingBuilder` in a `Tabs` with two tabs: **My tiers** (current editable tiers) and **AI suggested** (tiers from the chatbot, also editable).
-- Two independent tier states in `index.tsx`: `tiers` and `aiTiers`. A small "Use these tiers" button on the AI tab copies `aiTiers → tiers`. Forecast/KPIs/VC summary always use the active `tiers` (the My-tiers set) so users can experiment in the AI tab without disturbing their model.
-- If the user hasn't run the chatbot yet, the AI tab shows an empty state pointing to the chat.
+1. **Cover** — "Pitchcast" wordmark, tagline "Forecast · Model · Fundraise", company-name placeholder, ARR headline.
+2. **The pitch** — the auto-generated headline sentence + the 4 numbered bullets already shown in `VCSummary`.
+3. **Key metrics** — 2×2 grid: MRR, ARR, LTV/CAC, Break-even month.
+4. **Forecast at a glance** — a rendered revenue chart image + Ask / Use / Runway / Milestone stat strip.
 
-### 3. Editable VC pitch summary
-- `VCSummary.tsx` becomes inline-editable: headline `<h3>` and each of the 4 bullets use `contentEditable` with `onBlur` save (no extra deps). A tiny pencil hint appears on hover.
-- Add `vcOverrides: { headline?: string; bullets?: string[] }` state in `index.tsx`, persisted to localStorage alongside `tiers`/`assumptions`. The component renders override-or-default for each field, with a small "Reset to auto" link when any override exists.
-- Edited text flows into the existing PDF/PPTX export via `buildDeck()` (deck.ts will accept optional `headlineOverride` / `bulletsOverride`).
-- The AI chat's `pitchHeadline` / `pitchBullets` populate `vcOverrides` when the user clicks **Apply to my plan**.
+The deck inherits the Pitchcast palette (deep cocoa background, amber primary, teal accent) so the file matches the app.
 
-### Technical details
+## Technical approach
+Two new deps, both pure-JS / Worker-safe (no native Node, no server):
+- `pptxgenjs` — generates `.pptx` in the browser.
+- `jspdf` — generates `.pdf` in the browser.
 
-**New files**
-- `src/components/planner/OnboardingChat.tsx` — chat hero UI.
-- `src/lib/ai/recommendation.functions.ts` — `createServerFn({ method: "POST" })` that calls `https://ai.gateway.lovable.dev/v1/chat/completions` with `google/gemini-3-flash-preview`, `tool_choice` forcing a `recommend_business_model` tool whose JSON schema mirrors `PricingTier` + `Assumptions` + pitch fields. Reads `process.env.LOVABLE_API_KEY` inside `.handler()`. Handles 429/402 by returning `{ error }` shape.
-- `src/components/planner/EditableText.tsx` — small reusable `contentEditable` wrapper used by `VCSummary`.
+For slide 4's chart image, use `html-to-image` (or `dom-to-image-more`) to snapshot the existing `RevenueChart` SVG node into a PNG data URL, then embed it in both the PDF and PPTX. The chart already lives on the page, so we just grab its DOM node by ref — no second render needed.
 
-**Edited files**
-- `src/routes/index.tsx` — replace the current hero `<h1>` block with `<OnboardingChat onApply={...} onSuggest={...} />`; add `aiTiers` + `vcOverrides` state; wire localStorage; pass `vcOverrides` + setter to `VCSummary`; wrap `PricingBuilder` in Tabs.
-- `src/components/planner/PricingBuilder.tsx` — no behavior change; just used twice now.
-- `src/components/planner/VCSummary.tsx` — accept `overrides` + `onOverrideChange`; render `EditableText` for headline + each bullet; show "Reset to auto" when overrides present.
-- `src/lib/export/deck.ts` — accept optional `headlineOverride` / `bulletsOverride` and prefer them over computed defaults.
-- `src/components/planner/ExportButtons.tsx` — forward overrides into `buildDeck()`.
+New files:
+- `src/lib/export/deck.ts` — pure builder: takes `{ rows, tiers, assumptions, kpis, chartPng }` and returns slide content (title, bullets, stats). Shared by both exporters so the two outputs stay in sync.
+- `src/lib/export/pdf.ts` — `exportPdf(deckData)` using jsPDF, 4 pages, branded colors.
+- `src/lib/export/pptx.ts` — `exportPptx(deckData)` using pptxgenjs, 16:9, same 4 slides.
+- `src/components/planner/ExportButtons.tsx` — the two buttons + loading state + toast.
 
-**Backend**
-- Lovable Cloud + `LOVABLE_API_KEY` are required. Plan will check/enable them on implement.
-- Model: `google/gemini-3-flash-preview`. Structured output via tool calling (per gateway guidelines — not JSON-in-prompt).
-- System prompt anchors recommendations to our 5 tier types (free, subscription, one_time, physical, consumable) and asks for `mixPct` summing ≈100.
-- No streaming needed (short structured response). Toast on 402/429 with the standard messages.
+Changes to existing files:
+- `src/components/planner/VCSummary.tsx` — accept an optional `chartRef` (or expose a ref via the parent) and render `<ExportButtons />` in the panel header area.
+- `src/components/planner/ForecastCharts.tsx` — forward a `ref` to the chart container so the export can snapshot it.
+- `src/routes/index.tsx` — wire a `chartRef` between the Forecast panel and the VC summary panel; pass it down.
 
-### Out of scope
-- Saving multiple named scenarios.
-- Multi-turn chat memory (single-shot recommendation only).
-- AI editing of the VC summary after the initial seed — user edits manually.
+## Out of scope
+- No editable "company name" field yet (uses a placeholder like "Your AI startup" — we can wire a real input later if you want).
+- No email-sending or cloud upload — pure local download.
+- No editable slide template selection.
+
+## Confirmation
+If this matches what you wanted, hit **Implement plan** and I'll build it.
