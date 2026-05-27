@@ -12,9 +12,11 @@ import { AssumptionsPanel } from "@/components/planner/AssumptionsPanel";
 import { RevenueChart, CashflowChart, CustomersChart } from "@/components/planner/ForecastCharts";
 import { KPICard } from "@/components/planner/KPICard";
 import { VCSummary } from "@/components/planner/VCSummary";
+import { OnboardingChat } from "@/components/planner/OnboardingChat";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Term } from "@/components/planner/Term";
+import { usePitchDraft, type PitchDraft } from "@/hooks/usePitchDraft";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,6 +33,7 @@ const STORAGE_KEY = "pitchcast.v1";
 function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
   const [assumptions, setAssumptions] = useState<Assumptions>(defaultAssumptions);
+  const [initialPitch, setInitialPitch] = useState<PitchDraft | undefined>(undefined);
   const [loaded, setLoaded] = useState(false);
   const exportChartRef = useRef<HTMLDivElement | null>(null);
 
@@ -41,22 +44,48 @@ function Index() {
         const p = JSON.parse(raw);
         if (p.tiers) setTiers(p.tiers);
         if (p.assumptions) setAssumptions(p.assumptions);
+        if (p.pitch) setInitialPitch(p.pitch);
       }
     } catch {}
     setLoaded(true);
   }, []);
 
-  useEffect(() => {
-    if (!loaded) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tiers, assumptions }));
-  }, [tiers, assumptions, loaded]);
-
   const rows = useMemo(() => runForecast(tiers, assumptions), [tiers, assumptions]);
   const k = useMemo(() => computeKPIs(rows, assumptions), [rows, assumptions]);
+
+  const pitchApi = usePitchDraft(rows, tiers, assumptions, initialPitch, (next) => {
+    if (!loaded) return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const prev = raw ? JSON.parse(raw) : {};
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, pitch: next }));
+    } catch {}
+  });
+
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const prev = raw ? JSON.parse(raw) : {};
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions }));
+    } catch {}
+  }, [tiers, assumptions, loaded]);
 
   const reset = () => {
     setTiers(defaultTiers);
     setAssumptions(defaultAssumptions);
+    pitchApi.resetToAuto();
+  };
+
+  const applyAiRecommendation = (newTiers: PricingTier[], newAssumptions: Partial<Assumptions>) => {
+    if (newTiers.length) setTiers(newTiers);
+    if (newAssumptions && Object.keys(newAssumptions).length) {
+      setAssumptions((a) => ({ ...a, ...newAssumptions }));
+    }
+    pitchApi.resetToAuto();
+    setTimeout(() => {
+      document.getElementById("forecast-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
   const exportCSV = () => {
@@ -106,6 +135,10 @@ function Index() {
           </h1>
         </div>
 
+        <div className="mb-8">
+          <OnboardingChat onApply={applyAiRecommendation} />
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <KPICard term="mrr" label="MRR (final)" value={fmtCurrency(k.mrr)} hint={`Month ${assumptions.months}`} />
           <KPICard term="arr" label="ARR" value={fmtCurrency(k.arr)} tone="good" />
@@ -124,21 +157,39 @@ function Index() {
           </section>
 
           <section className="lg:col-span-2 space-y-6">
-            <Panel title="Forecast" subtitle={`${assumptions.months} months`}>
-              <Tabs defaultValue="revenue">
-                <TabsList className="bg-secondary">
-                  <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                  <TabsTrigger value="cashflow">Cashflow</TabsTrigger>
-                  <TabsTrigger value="customers">Customers</TabsTrigger>
-                </TabsList>
-                <TabsContent value="revenue" className="mt-4"><RevenueChart data={rows} /></TabsContent>
-                <TabsContent value="cashflow" className="mt-4"><CashflowChart data={rows} /></TabsContent>
-                <TabsContent value="customers" className="mt-4"><CustomersChart data={rows} /></TabsContent>
-              </Tabs>
-            </Panel>
+            <div id="forecast-panel">
+              <Panel title="Forecast" subtitle={`${assumptions.months} months`}>
+                <Tabs defaultValue="revenue">
+                  <TabsList className="bg-secondary">
+                    <TabsTrigger value="revenue">Revenue</TabsTrigger>
+                    <TabsTrigger value="cashflow">Cashflow</TabsTrigger>
+                    <TabsTrigger value="customers">Customers</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="revenue" className="mt-4"><RevenueChart data={rows} /></TabsContent>
+                  <TabsContent value="cashflow" className="mt-4"><CashflowChart data={rows} /></TabsContent>
+                  <TabsContent value="customers" className="mt-4"><CustomersChart data={rows} /></TabsContent>
+                </Tabs>
+              </Panel>
+            </div>
 
-            <Panel title="VC pitch summary" subtitle="Auto-generated from your model">
-              <VCSummary rows={rows} tiers={tiers} assumptions={assumptions} chartRef={exportChartRef} />
+            <Panel title="VC pitch summary" subtitle="Auto-generated · fully editable">
+              <VCSummary
+                rows={rows}
+                tiers={tiers}
+                assumptions={assumptions}
+                chartRef={exportChartRef}
+                pitch={pitchApi.resolved}
+                onCompanyName={(v) => pitchApi.setField("companyName", v)}
+                onHeadline={(v) => pitchApi.setField("headline", v)}
+                onBullet={pitchApi.setBullet}
+                onAddBullet={pitchApi.addBullet}
+                onRemoveBullet={pitchApi.removeBullet}
+                onAsk={(v) => pitchApi.setField("ask", v)}
+                onUse={(v) => pitchApi.setField("use", v)}
+                onRunway={(v) => pitchApi.setField("runway", v)}
+                onMilestone={(v) => pitchApi.setField("milestone", v)}
+                onReset={pitchApi.resetToAuto}
+              />
             </Panel>
 
             <Panel title="Monthly table" subtitle="First 12 months — hover headers for definitions">

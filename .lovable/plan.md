@@ -1,44 +1,58 @@
 ## Goal
-Add a one-click export from the **VC pitch summary** panel that produces a shareable **PDF** or **PowerPoint (.pptx)** of the deck.
+Two upgrades to Pitchcast:
+1. Make the **VC pitch summary** fully editable (company name, headline, bullets, ask/use/runway/milestone) and have edits flow into the PDF/PPTX export.
+2. Add an **AI onboarding chatbot** at the top of the page where the founder describes their product + business model in plain English, and Pitchcast pre-fills pricing tiers + assumptions from that conversation.
 
-## UX
-- Two buttons in the VC summary panel header: **Download PDF** and **Download PPTX**.
-- Both run fully client-side (no backend), trigger a browser download named `pitchcast-summary.pdf` / `pitchcast-summary.pptx`.
-- Show a small spinner on the button while generating; disable both during export.
-- A toast on success / failure (using the existing `sonner` setup).
+## Part 1 — Editable VC summary
 
-## Content of the exported deck
-Each export contains the same 4 slides, built from the live forecast data already in scope (`rows`, `tiers`, `assumptions`, `KPIs`):
+UX:
+- Each text element in `VCSummary` becomes inline-editable (click to edit, blur to save). Bullets get an add/remove control (min 2, max 6).
+- A small "Reset to auto-generated" link recomputes everything from the live forecast.
+- Edits are persisted in the same `pitchcast.v1` localStorage entry under a new `pitch` key, so they survive reload.
 
-1. **Cover** — "Pitchcast" wordmark, tagline "Forecast · Model · Fundraise", company-name placeholder, ARR headline.
-2. **The pitch** — the auto-generated headline sentence + the 4 numbered bullets already shown in `VCSummary`.
-3. **Key metrics** — 2×2 grid: MRR, ARR, LTV/CAC, Break-even month.
-4. **Forecast at a glance** — a rendered revenue chart image + Ask / Use / Runway / Milestone stat strip.
+Implementation:
+- New `PitchDraft` type: `{ companyName, headline, bullets[], ask, use, runway, milestone }`.
+- New hook `usePitchDraft(rows, tiers, assumptions)` that returns a draft seeded from the current auto-generated values, plus setters and a `reset()`. Auto-generated values are recomputed when forecast inputs change *and* the user hasn't manually overridden that field (tracked with a per-field `overridden` flag).
+- `VCSummary.tsx` swaps static text for an `<EditableText />` primitive (contentEditable span with placeholder + max length).
+- `ExportButtons` + `buildDeck` accept the `PitchDraft` and use its values instead of recomputing — so the downloaded PDF/PPTX matches exactly what's on screen.
 
-The deck inherits the Pitchcast palette (deep cocoa background, amber primary, teal accent) so the file matches the app.
+## Part 2 — Onboarding chatbot ("Describe your product")
 
-## Technical approach
-Two new deps, both pure-JS / Worker-safe (no native Node, no server):
-- `pptxgenjs` — generates `.pptx` in the browser.
-- `jspdf` — generates `.pdf` in the browser.
+UX:
+- New **"Start with AI"** panel at the very top of the page (above the KPI strip), collapsible after first use.
+- Simple chat: assistant opens with "Tell me about your product and how you plan to make money." User types one or two messages. After enough info, assistant returns a recommended setup and a single **"Apply to my model"** button.
+- Recommendation card shows: business-model summary, 2–4 pricing tiers with type/price/mix, and adjusted assumptions (CAC, conversion, churn, starting visitors). Each row has a checkbox so the founder can apply only parts.
 
-For slide 4's chart image, use `html-to-image` (or `dom-to-image-more`) to snapshot the existing `RevenueChart` SVG node into a PNG data URL, then embed it in both the PDF and PPTX. The chart already lives on the page, so we just grab its DOM node by ref — no second render needed.
+Backend (Lovable AI Gateway, default model `google/gemini-3-flash-preview`):
+- New server function `src/lib/ai/recommend.functions.ts` exposing `recommendModel({ messages })`.
+- Uses **tool calling** to force structured output matching our `PricingTier[]` + partial `Assumptions` shape (so we can apply it directly without parsing prose).
+- System prompt: "You are a startup pricing advisor for AI founders. Given a product description, recommend a pricing model (subscription, one-time, physical, consumable, or a mix) and starter assumptions. Be opinionated and concise."
+- Streaming not required for v1 — single request/response keeps it simple; we can stream later if it feels slow.
 
-New files:
-- `src/lib/export/deck.ts` — pure builder: takes `{ rows, tiers, assumptions, kpis, chartPng }` and returns slide content (title, bullets, stats). Shared by both exporters so the two outputs stay in sync.
-- `src/lib/export/pdf.ts` — `exportPdf(deckData)` using jsPDF, 4 pages, branded colors.
-- `src/lib/export/pptx.ts` — `exportPptx(deckData)` using pptxgenjs, 16:9, same 4 slides.
-- `src/components/planner/ExportButtons.tsx` — the two buttons + loading state + toast.
+Frontend:
+- New component `src/components/planner/OnboardingChat.tsx` — message list + input + recommendation card.
+- Calls the server function via `useServerFn` + `useMutation`.
+- On "Apply", calls `setTiers` / `setAssumptions` in `index.tsx` (lifted via props) and scrolls to the forecast.
+- Conversation is kept in component state only (not persisted) — it's a one-shot intake, not an ongoing chat.
 
-Changes to existing files:
-- `src/components/planner/VCSummary.tsx` — accept an optional `chartRef` (or expose a ref via the parent) and render `<ExportButtons />` in the panel header area.
-- `src/components/planner/ForecastCharts.tsx` — forward a `ref` to the chart container so the export can snapshot it.
-- `src/routes/index.tsx` — wire a `chartRef` between the Forecast panel and the VC summary panel; pass it down.
+Prerequisite:
+- Enable **Lovable Cloud** + **Lovable AI** if not already enabled, so `LOVABLE_API_KEY` is available to the server function. No user-provided keys needed.
+
+## Files
+
+New:
+- `src/components/planner/EditableText.tsx` — inline-editable text primitive.
+- `src/hooks/usePitchDraft.ts` — draft state + auto/override logic.
+- `src/components/planner/OnboardingChat.tsx` — chat UI + recommendation card.
+- `src/lib/ai/recommend.functions.ts` — server function calling Lovable AI Gateway with tool calling.
+
+Edited:
+- `src/components/planner/VCSummary.tsx` — wire in editable fields, accept `draft` prop.
+- `src/components/planner/ExportButtons.tsx` + `src/lib/export/deck.ts` — accept `draft` and use it for slide content.
+- `src/routes/index.tsx` — mount `<OnboardingChat />` at the top, lift pitch draft state, pass to `VCSummary` and `ExportButtons`, persist in localStorage.
 
 ## Out of scope
-- No editable "company name" field yet (uses a placeholder like "Your AI startup" — we can wire a real input later if you want).
-- No email-sending or cloud upload — pure local download.
-- No editable slide template selection.
-
-## Confirmation
-If this matches what you wanted, hit **Implement plan** and I'll build it.
+- Multi-turn back-and-forth refinement of the recommendation (v1 is one round; user can re-open the chat to redo).
+- Saving multiple named pitch drafts.
+- Streaming chat responses.
+- Exporting the chat transcript.
