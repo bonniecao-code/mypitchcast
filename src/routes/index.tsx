@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const STORAGE_KEY = "modelr.v1";
+const STORAGE_KEY = "pitchcast.v1";
 
 function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
