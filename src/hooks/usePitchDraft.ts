@@ -148,8 +148,28 @@ export function usePitchDraft(
   }, [auto.bullets]);
 
   const resetToAuto = useCallback(() => {
+    setDraft((d) => ({ companyName: d.companyName, aiSeed: d.aiSeed }));
+  }, []);
+
+  const clearAiSeed = useCallback(() => {
     setDraft((d) => ({ companyName: d.companyName }));
   }, []);
 
-  return { draft, resolved, auto, setField, setBullet, addBullet, removeBullet, resetToAuto };
+  const applyAiSeed = useCallback((seed: PitchSeed) => {
+    setDraft((d) => {
+      const isDefaultName = !d.companyName || d.companyName === "Your AI startup";
+      return {
+        ...d,
+        aiSeed: seed,
+        // Clear manual overrides so the seeded content shows through.
+        headline: undefined,
+        bullets: undefined,
+        use: undefined,
+        milestone: undefined,
+        companyName: isDefaultName && seed.companyName ? seed.companyName : d.companyName,
+      };
+    });
+  }, []);
+
+  return { draft, resolved, auto, setField, setBullet, addBullet, removeBullet, resetToAuto, applyAiSeed, clearAiSeed };
 }
