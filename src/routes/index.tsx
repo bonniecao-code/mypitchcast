@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Download, RotateCcw, Sparkles } from "lucide-react";
+import { Download, RotateCcw } from "lucide-react";
+import logoIcon from "@/assets/pitchcast-icon.png";
 import {
   defaultAssumptions, defaultTiers, runForecast, computeKPIs,
   fmtCurrency, fmtNumber,
