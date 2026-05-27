@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, RotateCcw } from "lucide-react";
 import logoIcon from "@/assets/pitchcast-icon.png";
 import {
@@ -32,6 +32,7 @@ function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
   const [assumptions, setAssumptions] = useState<Assumptions>(defaultAssumptions);
   const [loaded, setLoaded] = useState(false);
+  const exportChartRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -137,7 +138,7 @@ function Index() {
             </Panel>
 
             <Panel title="VC pitch summary" subtitle="Auto-generated from your model">
-              <VCSummary rows={rows} tiers={tiers} assumptions={assumptions} />
+              <VCSummary rows={rows} tiers={tiers} assumptions={assumptions} chartRef={exportChartRef} />
             </Panel>
 
             <Panel title="Monthly table" subtitle="First 12 months — hover headers for definitions">
