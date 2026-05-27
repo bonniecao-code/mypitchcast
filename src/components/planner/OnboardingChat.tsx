@@ -9,6 +9,14 @@ import type { Assumptions, PricingTier } from "@/lib/forecast";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
+type PitchSeed = {
+  companyName: string;
+  oneLiner: string;
+  bullets: string[];
+  use: string;
+  milestone: string;
+};
+
 type Recommendation = {
   summary: string;
   rationale?: string;
@@ -21,10 +29,11 @@ type Recommendation = {
     repurchasesPerMonth?: number;
   }>;
   assumptions: Partial<Assumptions>;
+  pitch?: PitchSeed;
 };
 
 type Props = {
-  onApply: (tiers: PricingTier[], assumptions: Partial<Assumptions>) => void;
+  onApply: (tiers: PricingTier[], assumptions: Partial<Assumptions>, pitch?: PitchSeed) => void;
 };
 
 const OPENER: Msg = {
