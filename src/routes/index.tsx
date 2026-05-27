@@ -77,12 +77,20 @@ function Index() {
     pitchApi.resetToAuto();
   };
 
-  const applyAiRecommendation = (newTiers: PricingTier[], newAssumptions: Partial<Assumptions>) => {
+  const applyAiRecommendation = (
+    newTiers: PricingTier[],
+    newAssumptions: Partial<Assumptions>,
+    pitchSeed?: { companyName: string; oneLiner: string; bullets: string[]; use: string; milestone: string },
+  ) => {
     if (newTiers.length) setTiers(newTiers);
     if (newAssumptions && Object.keys(newAssumptions).length) {
       setAssumptions((a) => ({ ...a, ...newAssumptions }));
     }
-    pitchApi.resetToAuto();
+    if (pitchSeed) {
+      pitchApi.applyAiSeed(pitchSeed);
+    } else {
+      pitchApi.resetToAuto();
+    }
     setTimeout(() => {
       document.getElementById("forecast-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
