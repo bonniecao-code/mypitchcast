@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, RotateCcw } from "lucide-react";
+import { Download, RotateCcw, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import logoIcon from "@/assets/pitchcast-icon.png";
 import {
   defaultAssumptions, defaultTiers, runForecast, computeKPIs,
@@ -11,10 +12,12 @@ import { PricingBuilder } from "@/components/planner/PricingBuilder";
 import { AssumptionsPanel } from "@/components/planner/AssumptionsPanel";
 import { RevenueChart, CashflowChart, CustomersChart } from "@/components/planner/ForecastCharts";
 import { KPICard } from "@/components/planner/KPICard";
-import { VCSummary } from "@/components/planner/VCSummary";
+import { VCSummary, type VCOverrides } from "@/components/planner/VCSummary";
+import { OnboardingChat } from "@/components/planner/OnboardingChat";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Term } from "@/components/planner/Term";
+import type { Recommendation } from "@/lib/ai/recommendation.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,11 +29,26 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const STORAGE_KEY = "pitchcast.v1";
+const STORAGE_KEY = "pitchcast.v2";
+
+function tiersFromRec(rec: Recommendation): PricingTier[] {
+  return rec.recommendedTiers.map((t) => ({
+    id: crypto.randomUUID(),
+    name: t.name,
+    type: t.type,
+    price: t.price,
+    mixPct: t.mixPct,
+    cogs: t.cogs,
+    repurchasesPerMonth: t.repurchasesPerMonth,
+  }));
+}
 
 function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
+  const [aiTiers, setAiTiers] = useState<PricingTier[] | null>(null);
   const [assumptions, setAssumptions] = useState<Assumptions>(defaultAssumptions);
+  const [vcOverrides, setVcOverrides] = useState<VCOverrides>({});
+  const [lastRec, setLastRec] = useState<Recommendation | null>(null);
   const [loaded, setLoaded] = useState(false);
   const exportChartRef = useRef<HTMLDivElement | null>(null);
 
@@ -40,7 +58,10 @@ function Index() {
       if (raw) {
         const p = JSON.parse(raw);
         if (p.tiers) setTiers(p.tiers);
+        if (p.aiTiers) setAiTiers(p.aiTiers);
         if (p.assumptions) setAssumptions(p.assumptions);
+        if (p.vcOverrides) setVcOverrides(p.vcOverrides);
+        if (p.lastRec) setLastRec(p.lastRec);
       }
     } catch {}
     setLoaded(true);
@@ -48,8 +69,8 @@ function Index() {
 
   useEffect(() => {
     if (!loaded) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tiers, assumptions }));
-  }, [tiers, assumptions, loaded]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tiers, aiTiers, assumptions, vcOverrides, lastRec }));
+  }, [tiers, aiTiers, assumptions, vcOverrides, lastRec, loaded]);
 
   const rows = useMemo(() => runForecast(tiers, assumptions), [tiers, assumptions]);
   const k = useMemo(() => computeKPIs(rows, assumptions), [rows, assumptions]);
@@ -57,6 +78,25 @@ function Index() {
   const reset = () => {
     setTiers(defaultTiers);
     setAssumptions(defaultAssumptions);
+    setVcOverrides({});
+    setAiTiers(null);
+    setLastRec(null);
+  };
+
+  const applyRecommendation = (rec: Recommendation) => {
+    const newTiers = tiersFromRec(rec);
+    setTiers(newTiers);
+    setAiTiers(newTiers);
+    setAssumptions((prev) => ({ ...prev, ...rec.assumptionOverrides }));
+    setVcOverrides({ headline: rec.pitchHeadline, bullets: rec.pitchBullets });
+    setLastRec(rec);
+    toast.success("Applied AI recommendation to your plan.");
+  };
+
+  const stageRecommendation = (rec: Recommendation) => {
+    setAiTiers(tiersFromRec(rec));
+    setLastRec(rec);
+    toast.success('Tiers added to the "AI suggested" tab.');
   };
 
   const exportCSV = () => {
@@ -95,18 +135,14 @@ function Index() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="font-display text-5xl sm:text-6xl leading-[1.05] max-w-3xl">
-            Forecast revenue.
-            <br />
-            <span className="text-muted-foreground">Model your pricing.</span>
-            <br />
-            Walk into your next <span className="text-primary">pitch</span> ready.
-          </h1>
-        </div>
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        <OnboardingChat
+          initial={lastRec}
+          onApplyAll={applyRecommendation}
+          onSuggestTab={stageRecommendation}
+        />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard term="mrr" label="MRR (final)" value={fmtCurrency(k.mrr)} hint={`Month ${assumptions.months}`} />
           <KPICard term="arr" label="ARR" value={fmtCurrency(k.arr)} tone="good" />
           <KPICard term="ltv-cac" label="LTV / CAC" value={`${k.ltvCac.toFixed(2)}x`} tone={k.ltvCac >= 3 ? "good" : k.ltvCac >= 1 ? "warn" : "bad"} hint="3x+ is healthy" />
@@ -116,7 +152,37 @@ function Index() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <section className="lg:col-span-1 space-y-6">
             <Panel title="Pricing tiers" subtitle="SaaS · digital · physical · refills">
-              <PricingBuilder tiers={tiers} onChange={setTiers} />
+              <Tabs defaultValue="mine">
+                <TabsList className="bg-secondary">
+                  <TabsTrigger value="mine">My tiers</TabsTrigger>
+                  <TabsTrigger value="ai" className="gap-1">
+                    <Sparkles className="h-3 w-3" /> AI suggested
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="mine" className="mt-4">
+                  <PricingBuilder tiers={tiers} onChange={setTiers} />
+                </TabsContent>
+                <TabsContent value="ai" className="mt-4 space-y-3">
+                  {aiTiers ? (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          Edit freely — only takes effect when you apply.
+                        </p>
+                        <Button size="sm" onClick={() => { setTiers(aiTiers); toast.success("Using AI tiers in your plan."); }}>
+                          Use these tiers
+                        </Button>
+                      </div>
+                      <PricingBuilder tiers={aiTiers} onChange={setAiTiers} />
+                    </>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                      <Sparkles className="h-5 w-5 mx-auto mb-2 text-primary" />
+                      Describe your product in the chat above to get AI-suggested tiers here.
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </Panel>
             <Panel title="Assumptions" subtitle="Hover any label for plain-English help">
               <AssumptionsPanel value={assumptions} onChange={setAssumptions} />
@@ -137,8 +203,13 @@ function Index() {
               </Tabs>
             </Panel>
 
-            <Panel title="VC pitch summary" subtitle="Auto-generated from your model">
-              <VCSummary rows={rows} tiers={tiers} assumptions={assumptions} chartRef={exportChartRef} />
+            <Panel title="VC pitch summary" subtitle="Click any line to edit · flows into PDF/PPTX">
+              <VCSummary
+                rows={rows} tiers={tiers} assumptions={assumptions}
+                chartRef={exportChartRef}
+                overrides={vcOverrides}
+                onOverridesChange={setVcOverrides}
+              />
             </Panel>
 
             <Panel title="Monthly table" subtitle="First 12 months — hover headers for definitions">
@@ -183,7 +254,7 @@ function Index() {
           </section>
         </div>
 
-        <footer className="mt-12 pt-6 border-t border-border text-xs text-muted-foreground">
+        <footer className="pt-6 border-t border-border text-xs text-muted-foreground">
           Saved locally in your browser. Numbers are projections — assumptions matter more than the model.
         </footer>
       </main>
