@@ -187,6 +187,16 @@ function Index() {
           Saved locally in your browser. Numbers are projections — assumptions matter more than the model.
         </footer>
       </main>
+
+      {/* Offscreen revenue chart, always mounted, used to snapshot for PDF/PPTX export */}
+      <div
+        aria-hidden
+        style={{ position: "fixed", left: -10000, top: 0, width: 960, height: 360, pointerEvents: "none" }}
+      >
+        <div ref={exportChartRef} style={{ width: 960, height: 360, background: "#1A1108", padding: 16 }}>
+          <RevenueChart data={rows} />
+        </div>
+      </div>
     </div>
   );
 }
