@@ -2,6 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Assumptions, MonthRow, PricingTier } from "@/lib/forecast";
 import { computeKPIs, fmtCurrency, fmtNumber } from "@/lib/forecast";
 
+export type PitchSeed = {
+  companyName?: string;
+  oneLiner?: string;
+  bullets?: string[];
+  use?: string;
+  milestone?: string;
+};
+
 export type PitchDraft = {
   companyName: string;
   // Each field is an override; null/undefined means "use auto-generated".
@@ -11,6 +19,8 @@ export type PitchDraft = {
   use?: string;
   runway?: string;
   milestone?: string;
+  // AI seed from the onboarding chat — used as the auto baseline when present.
+  aiSeed?: PitchSeed;
 };
 
 export function autoPitch(
