@@ -72,13 +72,13 @@ function Index() {
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <img src={logoIcon} alt="Pitchcast" className="h-9 w-9 rounded-lg" />
             <div>
-              <div className="font-display text-xl leading-none">Modelr</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">
-                Business modeling for AI founders
+              <div className="font-display text-xl leading-none font-semibold">
+                pitch<span className="text-primary">cast</span>
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground mt-1.5">
+                Forecast · Model · Fundraise
               </div>
             </div>
           </div>
