@@ -14,9 +14,11 @@ type Props = {
   assumptions: Assumptions;
   chartRef: RefObject<HTMLDivElement | null>;
   companyName?: string;
+  headlineOverride?: string;
+  bulletsOverride?: string[];
 };
 
-export function ExportButtons({ rows, tiers, assumptions, chartRef, companyName }: Props) {
+export function ExportButtons({ rows, tiers, assumptions, chartRef, companyName, headlineOverride, bulletsOverride }: Props) {
   const [busy, setBusy] = useState<null | "pdf" | "pptx">(null);
 
   const snapshotChart = async (): Promise<string | undefined> => {
@@ -39,7 +41,7 @@ export function ExportButtons({ rows, tiers, assumptions, chartRef, companyName 
     setBusy(kind);
     try {
       const chartPng = await snapshotChart();
-      const deck = buildDeck(rows, tiers, assumptions, chartPng, companyName);
+      const deck = buildDeck(rows, tiers, assumptions, chartPng, companyName, headlineOverride, bulletsOverride);
       if (kind === "pdf") await exportPdf(deck);
       else await exportPptx(deck);
       toast.success(`${kind.toUpperCase()} downloaded`);
