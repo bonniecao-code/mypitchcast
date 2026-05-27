@@ -18,8 +18,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Modelr — Business model & revenue forecasting for AI founders" },
-      { name: "description", content: "Model pricing tiers, forecast revenue, and generate VC-ready summaries for your AI startup." },
+      { title: "Pitchcast — Forecast. Model. Fundraise." },
+      { name: "description", content: "Model pricing, forecast revenue, and generate VC-ready summaries for your AI startup." },
     ],
   }),
   component: Index,
