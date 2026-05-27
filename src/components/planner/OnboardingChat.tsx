@@ -9,6 +9,14 @@ import type { Assumptions, PricingTier } from "@/lib/forecast";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
+type PitchSeed = {
+  companyName: string;
+  oneLiner: string;
+  bullets: string[];
+  use: string;
+  milestone: string;
+};
+
 type Recommendation = {
   summary: string;
   rationale?: string;
@@ -21,10 +29,11 @@ type Recommendation = {
     repurchasesPerMonth?: number;
   }>;
   assumptions: Partial<Assumptions>;
+  pitch?: PitchSeed;
 };
 
 type Props = {
-  onApply: (tiers: PricingTier[], assumptions: Partial<Assumptions>) => void;
+  onApply: (tiers: PricingTier[], assumptions: Partial<Assumptions>, pitch?: PitchSeed) => void;
 };
 
 const OPENER: Msg = {
@@ -90,7 +99,7 @@ export function OnboardingChat({ onApply }: Props) {
       ...(t.cogs !== undefined ? { cogs: t.cogs } : {}),
       ...(t.repurchasesPerMonth !== undefined ? { repurchasesPerMonth: t.repurchasesPerMonth } : {}),
     }));
-    onApply(applyTiers ? tiers : [], applyAssumptions ? rec.assumptions : {});
+    onApply(applyTiers ? tiers : [], applyAssumptions ? rec.assumptions : {}, rec.pitch);
     toast.success("Applied to your model");
     setOpen(false);
   };
@@ -159,6 +168,18 @@ export function OnboardingChat({ onApply }: Props) {
           {rec && (
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
               <div className="text-[10px] uppercase tracking-[0.15em] text-primary">Recommendation</div>
+
+              {rec.pitch && (
+                <div className="space-y-1.5 pb-2 border-b border-border/50">
+                  <div className="text-xs text-muted-foreground">Pitch headline</div>
+                  <div className="text-sm font-medium leading-snug">{rec.pitch.oneLiner}</div>
+                  <ul className="text-xs text-muted-foreground space-y-0.5 list-disc pl-4">
+                    {rec.pitch.bullets.slice(0, 3).map((b, i) => (
+                      <li key={i}>{b}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div>
                 <div className="text-xs text-muted-foreground mb-1">Pricing tiers</div>

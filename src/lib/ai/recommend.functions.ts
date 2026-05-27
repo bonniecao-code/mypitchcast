@@ -12,9 +12,8 @@ const InputSchema = z.object({
 
 const TIER_TYPES = ["free", "subscription", "one_time", "physical", "consumable"] as const;
 
-const SYSTEM_PROMPT = `You are a pricing & business-model advisor for solo AI founders.
-Given a short description of the product and how the founder plans to make money,
-recommend:
+const SYSTEM_PROMPT = `You are a pricing & business-model advisor AND VC pitch coach for solo AI founders.
+Given a short description of the product and how the founder plans to make money, recommend:
   1. A concise summary of the recommended business model (1-2 sentences).
   2. 2 to 4 pricing tiers. Pick tier types from: free, subscription, one_time, physical, consumable.
      - subscription = recurring monthly SaaS (price is $/month).
@@ -22,11 +21,15 @@ recommend:
      - physical = one-shipment hardware/biomaterial (include cogs = per-unit cost).
      - consumable = recurring physical reorders (include cogs and repurchasesPerMonth, e.g. 0.5 = every 2 months).
      - free = $0, used as a lead-gen tier.
-     mixPct across all tiers should sum to ~100 and represent the share of paying customers picking each tier.
+     mixPct across all tiers should sum to ~100.
   3. Starter assumptions that fit the model (visitors, conversion, churn, CAC, costs).
-Be opinionated. Choose realistic numbers for an early-stage AI startup.
-If the user is selling a physical product or biomaterial, lean into physical/consumable tiers.
-If they are unsure between subscription and one-time, suggest a blended model.`;
+  4. A tailored VC pitch (pitch object) that references the ACTUAL product nouns from the founder's description — never say "Your AI startup" or generic placeholders. Include:
+     - companyName: short, brandable suggested name derived from the product (2-3 words max).
+     - oneLiner: sharp headline like "<Product> is a <category> that <core value> for <audience>."
+     - bullets: 3-4 punchy VC bullets covering (a) wedge / why-now, (b) GTM motion, (c) moat or differentiator, (d) next milestone. Each under 160 chars. Do NOT invent revenue numbers — the app fills unit economics from the live forecast.
+     - use: 2-4 word phrase for use of funds (e.g. "Lab pilots + GTM").
+     - milestone: 2-6 word phrase for next funding milestone (e.g. "10 paid pilots", "FDA pre-submission").
+Be opinionated and concrete. Lean into physical/consumable tiers for biomaterials/hardware; blend models when unsure.`;
 
 export const recommendModel = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => InputSchema.parse(data))
@@ -91,8 +94,25 @@ export const recommendModel = createServerFn({ method: "POST" })
                   },
                   additionalProperties: false,
                 },
+                pitch: {
+                  type: "object",
+                  properties: {
+                    companyName: { type: "string" },
+                    oneLiner: { type: "string" },
+                    bullets: {
+                      type: "array",
+                      minItems: 3,
+                      maxItems: 4,
+                      items: { type: "string" },
+                    },
+                    use: { type: "string" },
+                    milestone: { type: "string" },
+                  },
+                  required: ["companyName", "oneLiner", "bullets", "use", "milestone"],
+                  additionalProperties: false,
+                },
               },
-              required: ["summary", "tiers", "assumptions"],
+              required: ["summary", "tiers", "assumptions", "pitch"],
               additionalProperties: false,
             },
           },

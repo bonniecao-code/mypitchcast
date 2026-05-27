@@ -1,58 +1,42 @@
 ## Goal
-Two upgrades to Pitchcast:
-1. Make the **VC pitch summary** fully editable (company name, headline, bullets, ask/use/runway/milestone) and have edits flow into the PDF/PPTX export.
-2. Add an **AI onboarding chatbot** at the top of the page where the founder describes their product + business model in plain English, and Pitchcast pre-fills pricing tiers + assumptions from that conversation.
+Right now the VC pitch summary is generated purely from KPI math (`autoPitch` in `usePitchDraft.ts`), so it ignores everything the founder typed into the onboarding chatbot. We'll make the pitch summary reflect the actual product description: company name, headline, bullets, ask/use/runway/milestone all tailored to what was said in the chat.
 
-## Part 1 — Editable VC summary
+## Approach
 
-UX:
-- Each text element in `VCSummary` becomes inline-editable (click to edit, blur to save). Bullets get an add/remove control (min 2, max 6).
-- A small "Reset to auto-generated" link recomputes everything from the live forecast.
-- Edits are persisted in the same `pitchcast.v1` localStorage entry under a new `pitch` key, so they survive reload.
+### 1. Extend the AI recommendation to include pitch content
+In `src/lib/ai/recommend.functions.ts`, add a `pitch` object to the `recommend_business_model` tool schema:
+- `companyName` (string, short suggested name based on product)
+- `oneLiner` (string, headline-style "X is a Y that does Z")
+- `bullets` (array of 3–4 strings: traction story, why-now, unit-economics narrative, GTM/wedge — written for VCs)
+- `use` (1 short phrase, e.g. "Lab pilots + GTM")
+- `milestone` (1 short phrase, e.g. "10 design partners + FDA pre-sub")
 
-Implementation:
-- New `PitchDraft` type: `{ companyName, headline, bullets[], ask, use, runway, milestone }`.
-- New hook `usePitchDraft(rows, tiers, assumptions)` that returns a draft seeded from the current auto-generated values, plus setters and a `reset()`. Auto-generated values are recomputed when forecast inputs change *and* the user hasn't manually overridden that field (tracked with a per-field `overridden` flag).
-- `VCSummary.tsx` swaps static text for an `<EditableText />` primitive (contentEditable span with placeholder + max length).
-- `ExportButtons` + `buildDeck` accept the `PitchDraft` and use its values instead of recomputing — so the downloaded PDF/PPTX matches exactly what's on screen.
+Update the system prompt: also act as a VC pitch coach. Reference concrete product nouns from the chat (don't say "Your AI startup" — use the actual thing).
 
-## Part 2 — Onboarding chatbot ("Describe your product")
+Keep `ask` and `runway` numeric/derived (they come from the forecast: 2× peak burn, horizon months) — but allow the AI to suggest a `use` and `milestone` that fit the product.
 
-UX:
-- New **"Start with AI"** panel at the very top of the page (above the KPI strip), collapsible after first use.
-- Simple chat: assistant opens with "Tell me about your product and how you plan to make money." User types one or two messages. After enough info, assistant returns a recommended setup and a single **"Apply to my model"** button.
-- Recommendation card shows: business-model summary, 2–4 pricing tiers with type/price/mix, and adjusted assumptions (CAC, conversion, churn, starting visitors). Each row has a checkbox so the founder can apply only parts.
+### 2. Apply the pitch to the editable draft on "Apply to my model"
+- `OnboardingChat` already calls `onApply(tiers, assumptions)`. Extend the signature to `onApply(tiers, assumptions, pitchSeed)` where `pitchSeed` is the AI's pitch object plus the raw product description.
+- In `src/routes/index.tsx`, the existing `applyAiRecommendation` currently calls `pitchApi.resetToAuto()`. Replace that with a new `pitchApi.applyAiSeed(pitchSeed)` that:
+  - Sets `companyName` if the user is still on the default ("Your AI startup").
+  - Sets `headline` = `oneLiner` (override).
+  - Sets `bullets` = AI bullets, but blends in one auto-computed unit-economics line from the live KPIs (LTV/CAC, break-even) so numbers stay truthful.
+  - Sets `use` and `milestone` overrides.
+  - Leaves `ask` and `runway` as auto (KPI-derived) so they stay correct when the forecast changes.
 
-Backend (Lovable AI Gateway, default model `google/gemini-3-flash-preview`):
-- New server function `src/lib/ai/recommend.functions.ts` exposing `recommendModel({ messages })`.
-- Uses **tool calling** to force structured output matching our `PricingTier[]` + partial `Assumptions` shape (so we can apply it directly without parsing prose).
-- System prompt: "You are a startup pricing advisor for AI founders. Given a product description, recommend a pricing model (subscription, one-time, physical, consumable, or a mix) and starter assumptions. Be opinionated and concise."
-- Streaming not required for v1 — single request/response keeps it simple; we can stream later if it feels slow.
+### 3. Keep the "smart" feel after edits
+- Persist the AI seed alongside `PitchDraft` in localStorage so a reload still shows the tailored pitch.
+- The existing "Reset to auto-generated" link should clear AI overrides too and fall back to the math-only pitch.
+- When the founder edits assumptions/tiers, auto-only fields (`ask`, `runway`, the unit-economics bullet) update live; AI-driven fields stay until the founder re-runs the chatbot or hits reset.
 
-Frontend:
-- New component `src/components/planner/OnboardingChat.tsx` — message list + input + recommendation card.
-- Calls the server function via `useServerFn` + `useMutation`.
-- On "Apply", calls `setTiers` / `setAssumptions` in `index.tsx` (lifted via props) and scrolls to the forecast.
-- Conversation is kept in component state only (not persisted) — it's a one-shot intake, not an ongoing chat.
-
-Prerequisite:
-- Enable **Lovable Cloud** + **Lovable AI** if not already enabled, so `LOVABLE_API_KEY` is available to the server function. No user-provided keys needed.
-
-## Files
-
-New:
-- `src/components/planner/EditableText.tsx` — inline-editable text primitive.
-- `src/hooks/usePitchDraft.ts` — draft state + auto/override logic.
-- `src/components/planner/OnboardingChat.tsx` — chat UI + recommendation card.
-- `src/lib/ai/recommend.functions.ts` — server function calling Lovable AI Gateway with tool calling.
-
-Edited:
-- `src/components/planner/VCSummary.tsx` — wire in editable fields, accept `draft` prop.
-- `src/components/planner/ExportButtons.tsx` + `src/lib/export/deck.ts` — accept `draft` and use it for slide content.
-- `src/routes/index.tsx` — mount `<OnboardingChat />` at the top, lift pitch draft state, pass to `VCSummary` and `ExportButtons`, persist in localStorage.
+### 4. Wire-up
+Files touched:
+- `src/lib/ai/recommend.functions.ts` — extend tool schema + system prompt to also return `pitch`.
+- `src/components/planner/OnboardingChat.tsx` — pass `recommendation.pitch` through `onApply`; show a one-line preview ("Pitch headline: …") in the recommendation card so the founder sees it before applying.
+- `src/hooks/usePitchDraft.ts` — add `applyAiSeed(seed)` method; merge AI bullet text with one always-live KPI bullet inside `resolved`.
+- `src/routes/index.tsx` — pass the seed through `applyAiRecommendation`; persist seed in localStorage under the existing `pitchcast.v1` key.
 
 ## Out of scope
-- Multi-turn back-and-forth refinement of the recommendation (v1 is one round; user can re-open the chat to redo).
-- Saving multiple named pitch drafts.
-- Streaming chat responses.
-- Exporting the chat transcript.
+- Multi-turn refinement of the pitch (still one-shot from the chat).
+- Re-running the AI when the founder edits assumptions (manual re-chat only).
+- Streaming responses.

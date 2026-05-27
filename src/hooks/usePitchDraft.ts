@@ -2,6 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Assumptions, MonthRow, PricingTier } from "@/lib/forecast";
 import { computeKPIs, fmtCurrency, fmtNumber } from "@/lib/forecast";
 
+export type PitchSeed = {
+  companyName?: string;
+  oneLiner?: string;
+  bullets?: string[];
+  use?: string;
+  milestone?: string;
+};
+
 export type PitchDraft = {
   companyName: string;
   // Each field is an override; null/undefined means "use auto-generated".
@@ -11,12 +19,15 @@ export type PitchDraft = {
   use?: string;
   runway?: string;
   milestone?: string;
+  // AI seed from the onboarding chat — used as the auto baseline when present.
+  aiSeed?: PitchSeed;
 };
 
 export function autoPitch(
   rows: MonthRow[],
   tiers: PricingTier[],
   assumptions: Assumptions,
+  seed?: PitchSeed,
 ) {
   const k = computeKPIs(rows, assumptions);
   const suggestedRaise = Math.max(0, -k.peakBurn) * 2 || 250_000;
@@ -36,23 +47,29 @@ export function autoPitch(
     )
     .join(" · ");
 
-  const headline = `An AI product on a ${pricingLine || "tiered"} model, projecting ${fmtCurrency(k.arr)} ARR in ${assumptions.months} months.`;
-  const bullets = [
-    `Reaches ${fmtCurrency(k.arr)} ARR by month ${assumptions.months} with ${fmtNumber(k.activePaid)} paying customers.`,
-    `LTV/CAC of ${k.ltvCac.toFixed(2)}x — ${k.ltvCac >= 3 ? "healthy unit economics." : "needs to improve before scaling spend."}`,
-    k.breakEven
-      ? `Breaks even on month ${k.breakEven}.`
-      : "Does not reach monthly break-even in horizon — extend or cut costs.",
-    `Peak cash need: ${fmtCurrency(Math.abs(k.peakBurn))}. Suggested raise: ${fmtCurrency(suggestedRaise)} (≈2× peak burn).`,
-  ];
+  const fallbackHeadline = `An AI product on a ${pricingLine || "tiered"} model, projecting ${fmtCurrency(k.arr)} ARR in ${assumptions.months} months.`;
+  const econLine = `Projects ${fmtCurrency(k.arr)} ARR by month ${assumptions.months} with ${fmtNumber(k.activePaid)} paying customers · LTV/CAC ${k.ltvCac.toFixed(2)}x${k.breakEven ? ` · break-even mo ${k.breakEven}` : ""}.`;
+
+  // When the AI seeded a pitch, use its narrative bullets and always append
+  // one live unit-economics line that stays truthful to the forecast.
+  const bullets = seed?.bullets?.length
+    ? [...seed.bullets, econLine]
+    : [
+        `Reaches ${fmtCurrency(k.arr)} ARR by month ${assumptions.months} with ${fmtNumber(k.activePaid)} paying customers.`,
+        `LTV/CAC of ${k.ltvCac.toFixed(2)}x — ${k.ltvCac >= 3 ? "healthy unit economics." : "needs to improve before scaling spend."}`,
+        k.breakEven
+          ? `Breaks even on month ${k.breakEven}.`
+          : "Does not reach monthly break-even in horizon — extend or cut costs.",
+        `Peak cash need: ${fmtCurrency(Math.abs(k.peakBurn))}. Suggested raise: ${fmtCurrency(suggestedRaise)} (≈2× peak burn).`,
+      ];
 
   return {
-    headline,
+    headline: seed?.oneLiner || fallbackHeadline,
     bullets,
     ask: fmtCurrency(suggestedRaise),
-    use: "Product + GTM",
+    use: seed?.use || "Product + GTM",
     runway: `${assumptions.months} mo`,
-    milestone: `${fmtCurrency(k.arr)} ARR`,
+    milestone: seed?.milestone || `${fmtCurrency(k.arr)} ARR`,
     arr: k.arr,
   };
 }
@@ -82,11 +99,17 @@ export function usePitchDraft(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft]);
 
-  const auto = useMemo(() => autoPitch(rows, tiers, assumptions), [rows, tiers, assumptions]);
+  const auto = useMemo(
+    () => autoPitch(rows, tiers, assumptions, draft.aiSeed),
+    [rows, tiers, assumptions, draft.aiSeed],
+  );
+
+  const seededCompany = draft.aiSeed?.companyName;
+  const isDefaultName = !draft.companyName || draft.companyName === "Your AI startup";
 
   const resolved: ResolvedPitch = {
     ...auto,
-    companyName: draft.companyName || "Your AI startup",
+    companyName: isDefaultName && seededCompany ? seededCompany : (draft.companyName || "Your AI startup"),
     headline: draft.headline ?? auto.headline,
     bullets: draft.bullets ?? auto.bullets,
     ask: draft.ask ?? auto.ask,
@@ -125,8 +148,28 @@ export function usePitchDraft(
   }, [auto.bullets]);
 
   const resetToAuto = useCallback(() => {
+    setDraft((d) => ({ companyName: d.companyName, aiSeed: d.aiSeed }));
+  }, []);
+
+  const clearAiSeed = useCallback(() => {
     setDraft((d) => ({ companyName: d.companyName }));
   }, []);
 
-  return { draft, resolved, auto, setField, setBullet, addBullet, removeBullet, resetToAuto };
+  const applyAiSeed = useCallback((seed: PitchSeed) => {
+    setDraft((d) => {
+      const isDefaultName = !d.companyName || d.companyName === "Your AI startup";
+      return {
+        ...d,
+        aiSeed: seed,
+        // Clear manual overrides so the seeded content shows through.
+        headline: undefined,
+        bullets: undefined,
+        use: undefined,
+        milestone: undefined,
+        companyName: isDefaultName && seed.companyName ? seed.companyName : d.companyName,
+      };
+    });
+  }, []);
+
+  return { draft, resolved, auto, setField, setBullet, addBullet, removeBullet, resetToAuto, applyAiSeed, clearAiSeed };
 }
