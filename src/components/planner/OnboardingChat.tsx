@@ -99,7 +99,7 @@ export function OnboardingChat({ onApply }: Props) {
       ...(t.cogs !== undefined ? { cogs: t.cogs } : {}),
       ...(t.repurchasesPerMonth !== undefined ? { repurchasesPerMonth: t.repurchasesPerMonth } : {}),
     }));
-    onApply(applyTiers ? tiers : [], applyAssumptions ? rec.assumptions : {});
+    onApply(applyTiers ? tiers : [], applyAssumptions ? rec.assumptions : {}, rec.pitch);
     toast.success("Applied to your model");
     setOpen(false);
   };
