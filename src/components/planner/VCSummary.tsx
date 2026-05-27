@@ -1,15 +1,18 @@
+import type { RefObject } from "react";
 import type { Assumptions, MonthRow, PricingTier } from "@/lib/forecast";
 import { computeKPIs, fmtCurrency, fmtNumber } from "@/lib/forecast";
+import { ExportButtons } from "./ExportButtons";
 
 type Props = {
   rows: MonthRow[];
   tiers: PricingTier[];
   assumptions: Assumptions;
+  chartRef: RefObject<HTMLDivElement | null>;
 };
 
-export function VCSummary({ rows, tiers, assumptions }: Props) {
+export function VCSummary({ rows, tiers, assumptions, chartRef }: Props) {
   const k = computeKPIs(rows, assumptions);
-  const askMultiple = 2; // ~24mo runway buffer
+  const askMultiple = 2;
   const suggestedRaise = Math.max(0, -k.peakBurn) * askMultiple || 250_000;
 
   const bullets = [
@@ -21,17 +24,20 @@ export function VCSummary({ rows, tiers, assumptions }: Props) {
 
   const pricingLine = tiers
     .filter((t) => t.mixPct > 0 || t.type === "free")
-    .map((t) => `${t.name} ($${t.price}${t.type === "subscription" ? "/mo" : t.type === "one_time" ? " one-time" : " free"})`)
+    .map((t) => `${t.name} ($${t.price}${t.type === "subscription" ? "/mo" : t.type === "consumable" ? "/refill" : t.type === "free" ? " free" : " once"})`)
     .join(" · ");
 
   return (
     <div className="space-y-5">
-      <div>
-        <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">The pitch</div>
-        <h3 className="font-display text-2xl mt-1">
-          An AI product on a {pricingLine || "tiered"} model, projecting{" "}
-          <span className="text-primary">{fmtCurrency(k.arr)}</span> ARR in {assumptions.months} months.
-        </h3>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">The pitch</div>
+          <h3 className="font-display text-2xl mt-1 max-w-2xl">
+            An AI product on a {pricingLine || "tiered"} model, projecting{" "}
+            <span className="text-primary">{fmtCurrency(k.arr)}</span> ARR in {assumptions.months} months.
+          </h3>
+        </div>
+        <ExportButtons rows={rows} tiers={tiers} assumptions={assumptions} chartRef={chartRef} />
       </div>
 
       <ul className="space-y-2">

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, RotateCcw } from "lucide-react";
 import logoIcon from "@/assets/pitchcast-icon.png";
 import {
@@ -32,6 +32,7 @@ function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
   const [assumptions, setAssumptions] = useState<Assumptions>(defaultAssumptions);
   const [loaded, setLoaded] = useState(false);
+  const exportChartRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -137,7 +138,7 @@ function Index() {
             </Panel>
 
             <Panel title="VC pitch summary" subtitle="Auto-generated from your model">
-              <VCSummary rows={rows} tiers={tiers} assumptions={assumptions} />
+              <VCSummary rows={rows} tiers={tiers} assumptions={assumptions} chartRef={exportChartRef} />
             </Panel>
 
             <Panel title="Monthly table" subtitle="First 12 months — hover headers for definitions">
@@ -186,6 +187,16 @@ function Index() {
           Saved locally in your browser. Numbers are projections — assumptions matter more than the model.
         </footer>
       </main>
+
+      {/* Offscreen revenue chart, always mounted, used to snapshot for PDF/PPTX export */}
+      <div
+        aria-hidden
+        style={{ position: "fixed", left: -10000, top: 0, width: 960, height: 360, pointerEvents: "none" }}
+      >
+        <div ref={exportChartRef} style={{ width: 960, height: 360, background: "#1A1108", padding: 16 }}>
+          <RevenueChart data={rows} />
+        </div>
+      </div>
     </div>
   );
 }
