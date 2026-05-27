@@ -8,27 +8,24 @@ import { buildDeck } from "@/lib/export/deck";
 import { exportPdf } from "@/lib/export/pdf";
 import { exportPptx } from "@/lib/export/pptx";
 
+import type { ResolvedPitch } from "@/hooks/usePitchDraft";
+
 type Props = {
   rows: MonthRow[];
   tiers: PricingTier[];
   assumptions: Assumptions;
   chartRef: RefObject<HTMLDivElement | null>;
-  companyName?: string;
+  pitch: ResolvedPitch;
 };
 
-export function ExportButtons({ rows, tiers, assumptions, chartRef, companyName }: Props) {
+export function ExportButtons({ rows, tiers, assumptions, chartRef, pitch }: Props) {
   const [busy, setBusy] = useState<null | "pdf" | "pptx">(null);
 
   const snapshotChart = async (): Promise<string | undefined> => {
     const node = chartRef.current;
     if (!node) return undefined;
     try {
-      // Use the cocoa background so the chart blends into the slide.
-      return await toPng(node, {
-        pixelRatio: 2,
-        backgroundColor: "#1A1108",
-        cacheBust: true,
-      });
+      return await toPng(node, { pixelRatio: 2, backgroundColor: "#1A1108", cacheBust: true });
     } catch (e) {
       console.warn("Chart snapshot failed", e);
       return undefined;
@@ -39,7 +36,7 @@ export function ExportButtons({ rows, tiers, assumptions, chartRef, companyName 
     setBusy(kind);
     try {
       const chartPng = await snapshotChart();
-      const deck = buildDeck(rows, tiers, assumptions, chartPng, companyName);
+      const deck = buildDeck(rows, tiers, assumptions, chartPng, pitch);
       if (kind === "pdf") await exportPdf(deck);
       else await exportPptx(deck);
       toast.success(`${kind.toUpperCase()} downloaded`);
