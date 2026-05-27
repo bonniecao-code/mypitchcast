@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Download, RotateCcw, Sparkles } from "lucide-react";
+import { Download, RotateCcw } from "lucide-react";
+import logoIcon from "@/assets/pitchcast-icon.png";
 import {
   defaultAssumptions, defaultTiers, runForecast, computeKPIs,
   fmtCurrency, fmtNumber,
@@ -17,14 +18,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Modelr — Business model & revenue forecasting for AI founders" },
-      { name: "description", content: "Model pricing tiers, forecast revenue, and generate VC-ready summaries for your AI startup." },
+      { title: "Pitchcast — Forecast. Model. Fundraise." },
+      { name: "description", content: "Model pricing, forecast revenue, and generate VC-ready summaries for your AI startup." },
     ],
   }),
   component: Index,
 });
 
-const STORAGE_KEY = "modelr.v1";
+const STORAGE_KEY = "pitchcast.v1";
 
 function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
@@ -71,13 +72,13 @@ function Index() {
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <img src={logoIcon} alt="Pitchcast" className="h-9 w-9 rounded-lg" />
             <div>
-              <div className="font-display text-xl leading-none">Modelr</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">
-                Business modeling for AI founders
+              <div className="font-display text-xl leading-none font-semibold">
+                pitch<span className="text-primary">cast</span>
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground mt-1.5">
+                Forecast · Model · Fundraise
               </div>
             </div>
           </div>
@@ -95,11 +96,11 @@ function Index() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="font-display text-5xl sm:text-6xl leading-[1.05] max-w-3xl">
-            Design your pricing.
+            Forecast revenue.
             <br />
-            <span className="text-muted-foreground">Forecast your revenue.</span>
+            <span className="text-muted-foreground">Model your pricing.</span>
             <br />
-            Pitch with <span className="text-primary italic">numbers</span>.
+            Walk into your next <span className="text-primary">pitch</span> ready.
           </h1>
         </div>
 
