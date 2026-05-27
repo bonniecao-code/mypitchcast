@@ -96,11 +96,11 @@ function Index() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="font-display text-5xl sm:text-6xl leading-[1.05] max-w-3xl">
-            Design your pricing.
+            Forecast revenue.
             <br />
-            <span className="text-muted-foreground">Forecast your revenue.</span>
+            <span className="text-muted-foreground">Model your pricing.</span>
             <br />
-            Pitch with <span className="text-primary italic">numbers</span>.
+            Walk into your next <span className="text-primary">pitch</span> ready.
           </h1>
         </div>
 
