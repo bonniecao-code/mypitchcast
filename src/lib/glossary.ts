@@ -117,6 +117,40 @@ export const glossary: Record<string, { title: string; body: string; example?: s
     title: "Founder ownership",
     body: "What you keep after the round: 100% − investor % − option pool %. Assumes you started fully owning the company.",
   },
+  // Term Sheet Decoder terms
+  "liquidation-preference": {
+    title: "Liquidation preference",
+    body: "Investors get their money back first in a sale. 1x is normal. 2x or 'participating preferred' means they double-dip.",
+    example: "1x non-participating: investor gets $1M back, then founders + common split the rest.",
+  },
+  "anti-dilution": {
+    title: "Anti-dilution",
+    body: "Protects investors if you raise a future round at a lower price. Broad-based weighted average is standard; full ratchet is a red flag.",
+  },
+  "pay-to-play": {
+    title: "Pay-to-play",
+    body: "In a down round, existing investors must invest again or lose preferred rights. Can align incentives or be punitive.",
+  },
+  "vesting": {
+    title: "Vesting",
+    body: "Founders earn shares over time, typically 4 years with a 1-year cliff. Leave early and unvested shares go back to the company.",
+  },
+  "board-of-directors": {
+    title: "Board of directors",
+    body: "Who controls the company. A 2-founder + 1-investor board keeps founders in charge. Losing majority = you can be fired as CEO.",
+  },
+  "protective-provisions": {
+    title: "Protective provisions",
+    body: "Investor veto rights over big decisions: selling the company, raising more money, changing the business. Too many and you can't move fast.",
+  },
+  "drag-along": {
+    title: "Drag-along",
+    body: "If a majority wants to sell, minority shareholders can be forced to join. Prevents one small investor from blocking a good exit.",
+  },
+  "conversion": {
+    title: "Conversion",
+    body: "When preferred shares turn into common shares, usually at an IPO or acquisition. Preferred investors only convert if the payout is better than their liquidation preference.",
+  },
 };
 
 export type GlossaryKey = keyof typeof glossary;
