@@ -205,6 +205,16 @@ function Index() {
               />
             </Panel>
 
+            <Panel title="Ownership & Dilution" subtitle="Model your next round">
+              <OwnershipPanel
+                value={ownership}
+                onChange={setOwnership}
+                onReset={() => setOwnership(defaultOwnership)}
+              />
+            </Panel>
+
+
+
             <Panel title="Monthly table" subtitle="First 12 months — hover headers for definitions">
               <div className="overflow-x-auto -mx-4 sm:mx-0">
                 <table className="w-full text-xs num">
