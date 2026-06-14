@@ -3,10 +3,10 @@ import { Link } from "@tanstack/react-router";
 import { Search, ArrowLeft, Shield, Banknote } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Term } from "@/components/planner/Term";
 import logoIcon from "@/assets/pitchcast-icon.png";
 import { cn } from "@/lib/utils";
+import type { GlossaryKey } from "@/lib/glossary";
 
 type BadgeType = "standard" | "negotiate" | "red-flag";
 
