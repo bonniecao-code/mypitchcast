@@ -15,6 +15,7 @@ import { VCSummary } from "@/components/planner/VCSummary";
 import { OnboardingChat } from "@/components/planner/OnboardingChat";
 import { OwnershipPanel, defaultOwnership, type Ownership } from "@/components/planner/OwnershipPanel";
 import { ReadyToRaise } from "@/components/planner/ReadyToRaise";
+import { ExitWaterfallPanel, defaultExitWaterfall, type ExitWaterfall } from "@/components/planner/ExitWaterfall";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Term } from "@/components/planner/Term";
