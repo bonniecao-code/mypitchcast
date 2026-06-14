@@ -228,8 +228,13 @@ function Index() {
                 onReset={() => setOwnership(defaultOwnership)}
               />
             </Panel>
-
-
+            <Panel title="Exit Waterfall" subtitle="Model your sale proceeds split">
+              <ExitWaterfallPanel
+                value={exitWaterfall}
+                onChange={setExitWaterfall}
+                onReset={() => setExitWaterfall(defaultExitWaterfall)}
+              />
+            </Panel>
 
             <Panel title="Monthly table" subtitle="First 12 months — hover headers for definitions">
               <div className="overflow-x-auto -mx-4 sm:mx-0">
