@@ -51,6 +51,7 @@ function Index() {
         if (p.assumptions) setAssumptions(p.assumptions);
         if (p.pitch) setInitialPitch(p.pitch);
         if (p.ownership) setOwnership({ ...defaultOwnership, ...p.ownership });
+        if (p.exitWaterfall) setExitWaterfall({ ...defaultExitWaterfall, ...p.exitWaterfall });
       }
     } catch {}
     setLoaded(true);
