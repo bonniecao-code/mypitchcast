@@ -16,6 +16,7 @@ interface TermItem {
   definition: string;
   category: "economics" | "control";
   badge: BadgeType;
+  glossaryKey?: GlossaryKey;
 }
 
 const termsSeed: TermItem[] = [
