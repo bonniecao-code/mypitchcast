@@ -13,6 +13,7 @@ import { RevenueChart, CashflowChart, CustomersChart } from "@/components/planne
 import { KPICard } from "@/components/planner/KPICard";
 import { VCSummary } from "@/components/planner/VCSummary";
 import { OnboardingChat } from "@/components/planner/OnboardingChat";
+import { OwnershipPanel, defaultOwnership, type Ownership } from "@/components/planner/OwnershipPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Term } from "@/components/planner/Term";
@@ -33,6 +34,7 @@ const STORAGE_KEY = "pitchcast.v1";
 function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
   const [assumptions, setAssumptions] = useState<Assumptions>(defaultAssumptions);
+  const [ownership, setOwnership] = useState<Ownership>(defaultOwnership);
   const [initialPitch, setInitialPitch] = useState<PitchDraft | undefined>(undefined);
   const [loaded, setLoaded] = useState(false);
   const exportChartRef = useRef<HTMLDivElement | null>(null);
@@ -45,6 +47,7 @@ function Index() {
         if (p.tiers) setTiers(p.tiers);
         if (p.assumptions) setAssumptions(p.assumptions);
         if (p.pitch) setInitialPitch(p.pitch);
+        if (p.ownership) setOwnership({ ...defaultOwnership, ...p.ownership });
       }
     } catch {}
     setLoaded(true);
@@ -58,7 +61,7 @@ function Index() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const prev = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, pitch: next }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, pitch: next, ownership }));
     } catch {}
   });
 
@@ -67,15 +70,17 @@ function Index() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const prev = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, ownership }));
     } catch {}
-  }, [tiers, assumptions, loaded]);
+  }, [tiers, assumptions, ownership, loaded]);
 
   const reset = () => {
     setTiers(defaultTiers);
     setAssumptions(defaultAssumptions);
+    setOwnership(defaultOwnership);
     pitchApi.resetToAuto();
   };
+
 
   const applyAiRecommendation = (
     newTiers: PricingTier[],
@@ -199,6 +204,16 @@ function Index() {
                 onReset={pitchApi.resetToAuto}
               />
             </Panel>
+
+            <Panel title="Ownership & Dilution" subtitle="Model your next round">
+              <OwnershipPanel
+                value={ownership}
+                onChange={setOwnership}
+                onReset={() => setOwnership(defaultOwnership)}
+              />
+            </Panel>
+
+
 
             <Panel title="Monthly table" subtitle="First 12 months — hover headers for definitions">
               <div className="overflow-x-auto -mx-4 sm:mx-0">

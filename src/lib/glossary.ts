@@ -93,6 +93,31 @@ export const glossary: Record<string, { title: string; body: string; example?: s
     title: "Tier type",
     body: "How customers pay: Free (lead gen), Subscription (recurring monthly), One-time digital (lifetime, course), Physical product (one shipment + unit cost), or Consumable (recurring physical reorders like refills, supplements, biomaterials).",
   },
+  "raise-amount": {
+    title: "Raise amount",
+    body: "How much new cash you're asking investors to put in this round.",
+  },
+  "pre-money": {
+    title: "Pre-money valuation",
+    body: "What your company is worth BEFORE the new money comes in. Investor % = raise ÷ (pre-money + raise).",
+  },
+  "post-money": {
+    title: "Post-money valuation",
+    body: "Pre-money + the new raise. The company's value the moment after the round closes.",
+  },
+  "option-pool": {
+    title: "Option pool",
+    body: "Shares reserved for future hires. Almost always carved from pre-money, meaning it dilutes you (the founder) — not the new investor.",
+  },
+  "investor-pct": {
+    title: "Investor ownership",
+    body: "The slice of the company the new investor gets: raise ÷ post-money valuation.",
+  },
+  "founder-pct": {
+    title: "Founder ownership",
+    body: "What you keep after the round: 100% − investor % − option pool %. Assumes you started fully owning the company.",
+  },
 };
 
 export type GlossaryKey = keyof typeof glossary;
+
