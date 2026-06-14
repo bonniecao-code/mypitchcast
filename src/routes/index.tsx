@@ -34,6 +34,7 @@ const STORAGE_KEY = "pitchcast.v1";
 function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
   const [assumptions, setAssumptions] = useState<Assumptions>(defaultAssumptions);
+  const [ownership, setOwnership] = useState<Ownership>(defaultOwnership);
   const [initialPitch, setInitialPitch] = useState<PitchDraft | undefined>(undefined);
   const [loaded, setLoaded] = useState(false);
   const exportChartRef = useRef<HTMLDivElement | null>(null);
@@ -46,6 +47,7 @@ function Index() {
         if (p.tiers) setTiers(p.tiers);
         if (p.assumptions) setAssumptions(p.assumptions);
         if (p.pitch) setInitialPitch(p.pitch);
+        if (p.ownership) setOwnership({ ...defaultOwnership, ...p.ownership });
       }
     } catch {}
     setLoaded(true);
@@ -59,7 +61,7 @@ function Index() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const prev = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, pitch: next }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, pitch: next, ownership }));
     } catch {}
   });
 
@@ -68,15 +70,17 @@ function Index() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const prev = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, ownership }));
     } catch {}
-  }, [tiers, assumptions, loaded]);
+  }, [tiers, assumptions, ownership, loaded]);
 
   const reset = () => {
     setTiers(defaultTiers);
     setAssumptions(defaultAssumptions);
+    setOwnership(defaultOwnership);
     pitchApi.resetToAuto();
   };
+
 
   const applyAiRecommendation = (
     newTiers: PricingTier[],
