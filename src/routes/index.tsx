@@ -13,6 +13,7 @@ import { RevenueChart, CashflowChart, CustomersChart } from "@/components/planne
 import { KPICard } from "@/components/planner/KPICard";
 import { VCSummary } from "@/components/planner/VCSummary";
 import { OnboardingChat } from "@/components/planner/OnboardingChat";
+import { OwnershipPanel, defaultOwnership, type Ownership } from "@/components/planner/OwnershipPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Term } from "@/components/planner/Term";
