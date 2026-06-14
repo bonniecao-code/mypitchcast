@@ -14,6 +14,7 @@ import { KPICard } from "@/components/planner/KPICard";
 import { VCSummary } from "@/components/planner/VCSummary";
 import { OnboardingChat } from "@/components/planner/OnboardingChat";
 import { OwnershipPanel, defaultOwnership, type Ownership } from "@/components/planner/OwnershipPanel";
+import { ReadyToRaise } from "@/components/planner/ReadyToRaise";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Term } from "@/components/planner/Term";
@@ -157,11 +158,17 @@ function Index() {
           <OnboardingChat onApply={applyAiRecommendation} />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <KPICard term="mrr" label="MRR (final)" value={fmtCurrency(k.mrr)} hint={`Month ${assumptions.months}`} />
           <KPICard term="arr" label="ARR" value={fmtCurrency(k.arr)} tone="good" />
           <KPICard term="ltv-cac" label="LTV / CAC" value={`${k.ltvCac.toFixed(2)}x`} tone={k.ltvCac >= 3 ? "good" : k.ltvCac >= 1 ? "warn" : "bad"} hint="3x+ is healthy" />
           <KPICard term="break-even" label="Break-even" value={k.breakEven ? `Mo ${k.breakEven}` : "—"} tone={k.breakEven ? "good" : "warn"} hint={k.breakEven ? "First profitable month" : "Not in horizon"} />
+        </div>
+
+        <div className="mb-8">
+          <Panel title="Ready to Raise?" subtitle="Investor-readiness check">
+            <ReadyToRaise rows={rows} assumptions={assumptions} kpis={k} raise={ownership.raise} />
+          </Panel>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
