@@ -27,6 +27,7 @@ const termsSeed: TermItem[] = [
       "Pre-money is what your company is worth before the round. Post-money is pre + the new cash. Investors own raise ÷ post-money.",
     category: "economics",
     badge: "standard",
+    glossaryKey: "pre-money",
   },
   {
     id: "liquidation-preference",
@@ -35,6 +36,7 @@ const termsSeed: TermItem[] = [
       "Investors get their money back first in a sale. 1x is normal. 2x or 'participating preferred' means they double-dip — founders get far less.",
     category: "economics",
     badge: "negotiate",
+    glossaryKey: "liquidation-preference",
   },
   {
     id: "anti-dilution",
@@ -43,6 +45,7 @@ const termsSeed: TermItem[] = [
       "Protects investors if you raise a future round at a lower price. 'Broad-based weighted average' is standard and fair. 'Full ratchet' resets their price entirely — brutal for founders.",
     category: "economics",
     badge: "negotiate",
+    glossaryKey: "anti-dilution",
   },
   {
     id: "pay-to-play",
@@ -51,6 +54,7 @@ const termsSeed: TermItem[] = [
       "In a down round, existing investors must put in more cash or lose preferred rights. Can align incentives, but punitive versions strip protections entirely.",
     category: "economics",
     badge: "negotiate",
+    glossaryKey: "pay-to-play",
   },
   {
     id: "option-pool",
@@ -59,6 +63,7 @@ const termsSeed: TermItem[] = [
       "Shares reserved for future hires. Almost always carved from pre-money, meaning it dilutes you — not the new investor.",
     category: "economics",
     badge: "standard",
+    glossaryKey: "option-pool",
   },
   {
     id: "vesting",
@@ -67,6 +72,7 @@ const termsSeed: TermItem[] = [
       "Founders earn their shares over time, typically 4 years with a 1-year cliff. If you leave early, unvested shares go back to the company.",
     category: "economics",
     badge: "standard",
+    glossaryKey: "vesting",
   },
   {
     id: "conversion",
@@ -75,6 +81,7 @@ const termsSeed: TermItem[] = [
       "When preferred shares turn into common shares, usually at an IPO or acquisition. Preferred investors only convert if the payout is better than their liquidation preference.",
     category: "economics",
     badge: "standard",
+    glossaryKey: "conversion",
   },
   {
     id: "board-of-directors",
@@ -83,6 +90,7 @@ const termsSeed: TermItem[] = [
       "Who controls the company. A 2-founder + 1-investor board keeps you in charge. Losing the majority means you can be fired as CEO.",
     category: "control",
     badge: "negotiate",
+    glossaryKey: "board-of-directors",
   },
   {
     id: "protective-provisions",
@@ -91,6 +99,7 @@ const termsSeed: TermItem[] = [
       "Investor veto rights over big decisions: selling the company, raising more money, changing the business, hiring/firing execs. Too many and you can't move fast.",
     category: "control",
     badge: "red-flag",
+    glossaryKey: "protective-provisions",
   },
   {
     id: "drag-along",
@@ -99,6 +108,7 @@ const termsSeed: TermItem[] = [
       "If a majority of shareholders want to sell the company, minority shareholders can be forced to join. Prevents one small investor from blocking a good exit.",
     category: "control",
     badge: "standard",
+    glossaryKey: "drag-along",
   },
 ];
 
@@ -130,7 +140,15 @@ function TermCard({ term }: { term: TermItem }) {
     <div className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-secondary/30">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <h3 className="font-display text-base font-medium mb-1">{term.name}</h3>
+          <h3 className="font-display text-base font-medium mb-1">
+            {term.glossaryKey ? (
+              <Term term={term.glossaryKey} hideIcon>
+                {term.name}
+              </Term>
+            ) : (
+              term.name
+            )}
+          </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">{term.definition}</p>
         </div>
         <div className="shrink-0 pt-0.5">
