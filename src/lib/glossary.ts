@@ -151,6 +151,29 @@ export const glossary: Record<string, { title: string; body: string; example?: s
     title: "Conversion",
     body: "When preferred shares turn into common shares, usually at an IPO or acquisition. Preferred investors only convert if the payout is better than their liquidation preference.",
   },
+  // Exit Waterfall terms
+  "sale-price": {
+    title: "Sale price",
+    body: "The hypothetical price someone might pay to acquire your company. Used to model how investors and founders split the proceeds.",
+  },
+  "invested-amount": {
+    title: "Invested amount",
+    body: "How much the investor put into the company. This is the 1x liquidation preference they get back first in a sale.",
+  },
+  "investor-ownership": {
+    title: "Investor ownership %",
+    body: "The slice of the company the investor owns. They get this percentage of remaining proceeds after their liquidation preference is paid.",
+  },
+  "participating-preferred": {
+    title: "Participating preferred",
+    body: "The investor gets their 1x money back FIRST, then ALSO takes their ownership % of what is left. This double-dips at the founder's expense.",
+    example: "$2M invested, 20% ownership, $10M sale: investor gets $2M + 20% of $8M = $3.6M. Founder gets $6.4M.",
+  },
+  "non-participating-preferred": {
+    title: "Non-participating preferred",
+    body: "The investor chooses the better of (1) getting their 1x money back, or (2) converting to common and just taking their ownership %. They cannot do both.",
+    example: "$2M invested, 20% ownership, $10M sale: 20% of $10M = $2M, so they are indifferent. Founder gets $8M either way.",
+  },
 };
 
 export type GlossaryKey = keyof typeof glossary;

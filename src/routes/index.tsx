@@ -15,6 +15,7 @@ import { VCSummary } from "@/components/planner/VCSummary";
 import { OnboardingChat } from "@/components/planner/OnboardingChat";
 import { OwnershipPanel, defaultOwnership, type Ownership } from "@/components/planner/OwnershipPanel";
 import { ReadyToRaise } from "@/components/planner/ReadyToRaise";
+import { ExitWaterfallPanel, defaultExitWaterfall, type ExitWaterfall } from "@/components/planner/ExitWaterfall";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Term } from "@/components/planner/Term";
@@ -36,6 +37,7 @@ function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
   const [assumptions, setAssumptions] = useState<Assumptions>(defaultAssumptions);
   const [ownership, setOwnership] = useState<Ownership>(defaultOwnership);
+  const [exitWaterfall, setExitWaterfall] = useState<ExitWaterfall>(defaultExitWaterfall);
   const [initialPitch, setInitialPitch] = useState<PitchDraft | undefined>(undefined);
   const [loaded, setLoaded] = useState(false);
   const exportChartRef = useRef<HTMLDivElement | null>(null);
@@ -49,6 +51,7 @@ function Index() {
         if (p.assumptions) setAssumptions(p.assumptions);
         if (p.pitch) setInitialPitch(p.pitch);
         if (p.ownership) setOwnership({ ...defaultOwnership, ...p.ownership });
+        if (p.exitWaterfall) setExitWaterfall({ ...defaultExitWaterfall, ...p.exitWaterfall });
       }
     } catch {}
     setLoaded(true);
@@ -62,7 +65,7 @@ function Index() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const prev = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, pitch: next, ownership }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, pitch: next, ownership, exitWaterfall }));
     } catch {}
   });
 
@@ -71,14 +74,15 @@ function Index() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const prev = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, ownership }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, ownership, exitWaterfall }));
     } catch {}
-  }, [tiers, assumptions, ownership, loaded]);
+  }, [tiers, assumptions, ownership, exitWaterfall, loaded]);
 
   const reset = () => {
     setTiers(defaultTiers);
     setAssumptions(defaultAssumptions);
     setOwnership(defaultOwnership);
+    setExitWaterfall(defaultExitWaterfall);
     pitchApi.resetToAuto();
   };
 
@@ -224,8 +228,13 @@ function Index() {
                 onReset={() => setOwnership(defaultOwnership)}
               />
             </Panel>
-
-
+            <Panel title="Exit Waterfall" subtitle="Model your sale proceeds split">
+              <ExitWaterfallPanel
+                value={exitWaterfall}
+                onChange={setExitWaterfall}
+                onReset={() => setExitWaterfall(defaultExitWaterfall)}
+              />
+            </Panel>
 
             <Panel title="Monthly table" subtitle="First 12 months — hover headers for definitions">
               <div className="overflow-x-auto -mx-4 sm:mx-0">
