@@ -65,7 +65,7 @@ function Index() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const prev = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, pitch: next, ownership }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, pitch: next, ownership, exitWaterfall }));
     } catch {}
   });
 
