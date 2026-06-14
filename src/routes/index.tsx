@@ -127,6 +127,11 @@ function Index() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Link to="/terms">
+              <Button variant="ghost" size="sm">
+                <BookOpen className="h-4 w-4 mr-1" /> Term Sheet
+              </Button>
+            </Link>
             <Button variant="ghost" size="sm" onClick={reset}>
               <RotateCcw className="h-4 w-4 mr-1" /> Reset
             </Button>
