@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, RotateCcw } from "lucide-react";
+import { Download, RotateCcw, BookOpen } from "lucide-react";
 import logoIcon from "@/assets/pitchcast-icon.png";
 import {
   defaultAssumptions, defaultTiers, runForecast, computeKPIs,
@@ -127,6 +127,11 @@ function Index() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Link to="/terms">
+              <Button variant="ghost" size="sm">
+                <BookOpen className="h-4 w-4 mr-1" /> Term Sheet
+              </Button>
+            </Link>
             <Button variant="ghost" size="sm" onClick={reset}>
               <RotateCcw className="h-4 w-4 mr-1" /> Reset
             </Button>
