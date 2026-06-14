@@ -74,9 +74,9 @@ function Index() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const prev = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, ownership }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, tiers, assumptions, ownership, exitWaterfall }));
     } catch {}
-  }, [tiers, assumptions, ownership, loaded]);
+  }, [tiers, assumptions, ownership, exitWaterfall, loaded]);
 
   const reset = () => {
     setTiers(defaultTiers);
