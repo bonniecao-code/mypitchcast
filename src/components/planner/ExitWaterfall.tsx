@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Info, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,12 +31,11 @@ export function ExitWaterfallPanel({ value, onChange, onReset }: Props) {
   const set = <K extends keyof ExitWaterfall>(k: K, v: ExitWaterfall[K]) =>
     onChange({ ...value, [k]: v });
 
-  // ── calculations ──────────────────────────────────────────────
   const sp = Math.max(0, value.salePrice);
   const inv = Math.max(0, value.invested);
   const pct = Math.min(100, Math.max(0, value.investorPct));
 
-  // Non-participating: investor gets the BETTER of (1) 1x preference back
+  // Non-participating: investor gets BETTER of (1) 1x preference back
   // or (2) converting to common and taking their % of sale price
   const nonPartInvestor = Math.max(inv, (pct / 100) * sp);
   const nonPartFounder = Math.max(0, sp - nonPartInvestor);
@@ -47,7 +45,6 @@ export function ExitWaterfallPanel({ value, onChange, onReset }: Props) {
   const partInvestor = inv + (pct / 100) * Math.max(0, sp - inv);
   const partFounder = Math.max(0, sp - partInvestor);
 
-  // ── bar helpers ───────────────────────────────────────────────
   function barPct(amount: number, total: number) {
     return total > 0 ? (amount / total) * 100 : 0;
   }
@@ -206,4 +203,41 @@ export function ExitWaterfallPanel({ value, onChange, onReset }: Props) {
           <div className="font-display text-sm text-warning mb-1">
             The participating preference bites twice
           </div>
-          Non-participating lets the investor choose their 1x money back{
+          Non-participating lets the investor choose their 1x money back or convert to common — whichever is better. Participating gives them their 1x back AND a share of what is left, so they double-dip at the founder&apos;s expense. At a $10M sale with $2M invested and 20% ownership, participating takes an extra $1.6M out of the founder&apos;s pocket.
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={onReset}
+          className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground flex items-center gap-1"
+        >
+          <RotateCcw className="h-3 w-3" /> Reset
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Segment({
+  pct,
+  className,
+  label,
+  amount,
+}: {
+  pct: number;
+  className: string;
+  label: string;
+  amount: number;
+}) {
+  if (pct <= 0) return null;
+  return (
+    <div
+      className={`flex items-center justify-center text-[10px] font-medium ${className}`}
+      style={{ width: `${pct}%` }}
+      title={`${label} ${fmtCurrency(amount)} (${pct.toFixed(1)}%)`}
+    >
+      {pct >= 8 ? `${pct.toFixed(0)}%` : ""}
+    </div>
+  );
+}
