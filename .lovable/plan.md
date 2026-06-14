@@ -1,42 +1,63 @@
-## Goal
-Right now the VC pitch summary is generated purely from KPI math (`autoPitch` in `usePitchDraft.ts`), so it ignores everything the founder typed into the onboarding chatbot. We'll make the pitch summary reflect the actual product description: company name, headline, bullets, ask/use/runway/milestone all tailored to what was said in the chat.
+## Add Ownership & Dilution section
 
-## Approach
+Add a new interactive section below the VC pitch summary that models a priced equity round, shows ownership split, and warns founders about the option pool trap.
 
-### 1. Extend the AI recommendation to include pitch content
-In `src/lib/ai/recommend.functions.ts`, add a `pitch` object to the `recommend_business_model` tool schema:
-- `companyName` (string, short suggested name based on product)
-- `oneLiner` (string, headline-style "X is a Y that does Z")
-- `bullets` (array of 3–4 strings: traction story, why-now, unit-economics narrative, GTM/wedge — written for VCs)
-- `use` (1 short phrase, e.g. "Lab pilots + GTM")
-- `milestone` (1 short phrase, e.g. "10 design partners + FDA pre-sub")
+### UI additions
 
-Update the system prompt: also act as a VC pitch coach. Reference concrete product nouns from the chat (don't say "Your AI startup" — use the actual thing).
+1. **New Panel** — "Ownership & Dilution" below the VC pitch summary panel in `src/routes/index.tsx`.
 
-Keep `ask` and `runway` numeric/derived (they come from the forecast: 2× peak burn, horizon months) — but allow the AI to suggest a `use` and `milestone` that fit the product.
+2. **Inputs** (grid matching AssumptionsPanel style):
+   - Raise amount ($) — number input, default $500K
+   - Pre-money valuation ($) — number input, default $2M
+   - Option pool % — slider (0–20) + number input, default 10%
 
-### 2. Apply the pitch to the editable draft on "Apply to my model"
-- `OnboardingChat` already calls `onApply(tiers, assumptions)`. Extend the signature to `onApply(tiers, assumptions, pitchSeed)` where `pitchSeed` is the AI's pitch object plus the raw product description.
-- In `src/routes/index.tsx`, the existing `applyAiRecommendation` currently calls `pitchApi.resetToAuto()`. Replace that with a new `pitchApi.applyAiSeed(pitchSeed)` that:
-  - Sets `companyName` if the user is still on the default ("Your AI startup").
-  - Sets `headline` = `oneLiner` (override).
-  - Sets `bullets` = AI bullets, but blends in one auto-computed unit-economics line from the live KPIs (LTV/CAC, break-even) so numbers stay truthful.
-  - Sets `use` and `milestone` overrides.
-  - Leaves `ask` and `runway` as auto (KPI-derived) so they stay correct when the forecast changes.
+3. **Calculated read-only stats** (four small cards):
+   - Post-money valuation = pre + raise
+   - Investor % = raise / post-money
+   - Founder % = 100% – investor % – option pool %
+   - Option Pool % (echo of input, shown for symmetry)
 
-### 3. Keep the "smart" feel after edits
-- Persist the AI seed alongside `PitchDraft` in localStorage so a reload still shows the tailored pitch.
-- The existing "Reset to auto-generated" link should clear AI overrides too and fall back to the math-only pitch.
-- When the founder edits assumptions/tiers, auto-only fields (`ask`, `runway`, the unit-economics bullet) update live; AI-driven fields stay until the founder re-runs the chatbot or hits reset.
+4. **Horizontal stacked bar** — 100% width bar segmented into Founder / Investor / Option Pool, color-coded with existing theme colors (use primary, muted-foreground, secondary). Labels show `XX%` inside each segment when width allows, or below.
 
-### 4. Wire-up
-Files touched:
-- `src/lib/ai/recommend.functions.ts` — extend tool schema + system prompt to also return `pitch`.
-- `src/components/planner/OnboardingChat.tsx` — pass `recommendation.pitch` through `onApply`; show a one-line preview ("Pitch headline: …") in the recommendation card so the founder sees it before applying.
-- `src/hooks/usePitchDraft.ts` — add `applyAiSeed(seed)` method; merge AI bullet text with one always-live KPI bullet inside `resolved`.
-- `src/routes/index.tsx` — pass the seed through `applyAiRecommendation`; persist seed in localStorage under the existing `pitchcast.v1` key.
+5. **Info callout** — Alert-style box titled "The option pool trap" explaining that the pool dilutes the founder, not the investor, because it is carved from the pre-money. Example: if investor buys 20% and a 10% pool is created, founder drops to 70% (not 80%).
 
-## Out of scope
-- Multi-turn refinement of the pitch (still one-shot from the chat).
-- Re-running the AI when the founder edits assumptions (manual re-chat only).
-- Streaming responses.
+6. **Tooltips** — each input label uses the existing `<Term>` component (like AssumptionsPanel). Add new glossary entries: `raise-amount`, `pre-money`, `option-pool`, `post-money`, `investor-pct`, `founder-pct`.
+
+### State & persistence
+
+- Store `Ownership` shape in a new state object: `{ raise: number; preMoney: number; optionPoolPct: number }`.
+- Default values: `{ raise: 500_000, preMoney: 2_000_000, optionPoolPct: 10 }`.
+- Persist to localStorage under the same `STORAGE_KEY` as the rest of the app (merge into existing object).
+- Reset button on the panel resets to defaults.
+
+### Files to create / edit
+
+| File | Action |
+|---|---|
+| `src/components/planner/OwnershipPanel.tsx` | New component: inputs, calculations, stacked bar, callout |
+| `src/lib/glossary.ts` | Add 6 new glossary entries |
+| `src/routes/index.tsx` | Import panel, add state, wire into layout below VC pitch summary, persist |
+
+### Visual sketch
+
+```text
++---------------------------------------------------+
+|  Ownership & Dilution                             |
+|                                                   |
+|  [Raise $500K]  [Pre-money $2M]  [Pool ▓▓▓ 10%]   |
+|                                                   |
+|  Post: $2.5M   Investor: 20%   Founder: 70%      |
+|                                                   |
+|  | Founder 70% | Investor 20% | Pool 10% |        |
+|  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ |
+|                                                   |
+|  [i] The option pool trap                         |
+|      The pool is carved from pre-money, so the... |
++---------------------------------------------------+
+```
+
+### Technical notes
+
+- Reuse existing UI primitives: `Input`, `Label`, `Slider` (from `src/components/ui/`), and `Term`.
+- The stacked bar is a pure CSS flexbox or grid with inline percentage widths — no chart library needed.
+- Calculations are synchronous and local; no server functions or AI calls.
