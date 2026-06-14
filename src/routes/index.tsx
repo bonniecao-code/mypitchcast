@@ -82,6 +82,7 @@ function Index() {
     setTiers(defaultTiers);
     setAssumptions(defaultAssumptions);
     setOwnership(defaultOwnership);
+    setExitWaterfall(defaultExitWaterfall);
     pitchApi.resetToAuto();
   };
 
