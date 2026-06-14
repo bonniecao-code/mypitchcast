@@ -37,6 +37,7 @@ function Index() {
   const [tiers, setTiers] = useState<PricingTier[]>(defaultTiers);
   const [assumptions, setAssumptions] = useState<Assumptions>(defaultAssumptions);
   const [ownership, setOwnership] = useState<Ownership>(defaultOwnership);
+  const [exitWaterfall, setExitWaterfall] = useState<ExitWaterfall>(defaultExitWaterfall);
   const [initialPitch, setInitialPitch] = useState<PitchDraft | undefined>(undefined);
   const [loaded, setLoaded] = useState(false);
   const exportChartRef = useRef<HTMLDivElement | null>(null);
