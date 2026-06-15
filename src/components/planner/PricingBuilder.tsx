@@ -1,10 +1,12 @@
 import { Trash2, Plus } from "lucide-react";
-import { type PricingTier, type TierType, tierTypeMeta } from "@/lib/forecast";
+import { type PricingTier, type TierType, type BillingPeriod, tierTypeMeta } from "@/lib/forecast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Term } from "./Term";
+
 
 type Props = {
   tiers: PricingTier[];
@@ -36,8 +38,10 @@ export function PricingBuilder({ tiers, onChange }: Props) {
       {tiers.map((t) => {
         const showCogs = t.type === "physical" || t.type === "consumable";
         const showRepurchase = t.type === "consumable";
+        const isSub = t.type === "subscription";
+        const billing: BillingPeriod = t.billingPeriod ?? "monthly";
         const priceSuffix =
-          t.type === "subscription" ? "/mo"
+          isSub ? (billing === "yearly" ? "/yr" : "/mo")
           : t.type === "consumable" ? "/unit"
           : t.type === "free" ? ""
           : " once";
@@ -95,6 +99,26 @@ export function PricingBuilder({ tiers, onChange }: Props) {
                   onChange={(e) => update(t.id, { mixPct: Number(e.target.value) })}
                 />
               </div>
+
+              {isSub && (
+                <div className="col-span-12">
+                  <Label className="text-xs text-muted-foreground">
+                    <Term term="billing-period">Billing period</Term>
+                  </Label>
+                  <ToggleGroup
+                    type="single"
+                    value={billing}
+                    onValueChange={(v) => {
+                      if (!v) return;
+                      update(t.id, { billingPeriod: v as BillingPeriod });
+                    }}
+                    className="justify-start"
+                  >
+                    <ToggleGroupItem value="monthly" size="sm" className="text-xs">Monthly</ToggleGroupItem>
+                    <ToggleGroupItem value="yearly" size="sm" className="text-xs">Yearly</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+              )}
 
               {showCogs && (
                 <div className="col-span-6">

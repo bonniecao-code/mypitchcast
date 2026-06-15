@@ -93,6 +93,11 @@ export const glossary: Record<string, { title: string; body: string; example?: s
     title: "Tier type",
     body: "How customers pay: Free (lead gen), Subscription (recurring monthly), One-time digital (lifetime, course), Physical product (one shipment + unit cost), or Consumable (recurring physical reorders like refills, supplements, biomaterials).",
   },
+  "billing-period": {
+    title: "Billing period",
+    body: "Monthly subs are charged every month. Yearly subs are charged once up front for 12 months, then renew on the anniversary. Churn is still applied monthly to the active base — the cash is just lumpy instead of smooth.",
+    example: "100 customers × $290/yr = $29,000 cash in month 1, then renewals at month 13",
+  },
   "raise-amount": {
     title: "Raise amount",
     body: "How much new cash you're asking investors to put in this round.",

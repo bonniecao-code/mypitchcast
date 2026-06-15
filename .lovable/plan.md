@@ -1,63 +1,43 @@
-## Add Ownership & Dilution section
+# Add yearly billing to subscription tiers
 
-Add a new interactive section below the VC pitch summary that models a priced equity round, shows ownership split, and warns founders about the option pool trap.
+## Problem
+Today, every `subscription` tier is treated as monthly: the price is added straight into MRR each month and the price label reads `/mo`. A user on annual billing can't represent their actual model — they'd have to divide by 12 manually and lose the upfront cash dynamic.
 
-### UI additions
+## Solution
+Let each subscription tier declare a billing period: **Monthly** or **Yearly**. Yearly subs are charged once up front per active customer, then renew every 12 months. Other tier types (free, one-time, physical, consumable) are unchanged.
 
-1. **New Panel** — "Ownership & Dilution" below the VC pitch summary panel in `src/routes/index.tsx`.
+## UX changes (`PricingBuilder.tsx`)
+- When `type === "subscription"`, show a new compact toggle next to the price: **Monthly / Yearly**.
+- Price suffix updates: `/mo` or `/yr`.
+- Tooltip on the toggle explaining how yearly works in the forecast (charged up front, renews after 12 months, churn still applied monthly between renewals).
 
-2. **Inputs** (grid matching AssumptionsPanel style):
-   - Raise amount ($) — number input, default $500K
-   - Pre-money valuation ($) — number input, default $2M
-   - Option pool % — slider (0–20) + number input, default 10%
+## Data model (`forecast.ts`)
+- Add `billingPeriod?: "monthly" | "yearly"` to `PricingTier` (default `"monthly"` so existing saved models keep working).
+- Default tiers stay monthly; one of the seeded tiers can show a yearly example.
 
-3. **Calculated read-only stats** (four small cards):
-   - Post-money valuation = pre + raise
-   - Investor % = raise / post-money
-   - Founder % = 100% – investor % – option pool %
-   - Option Pool % (echo of input, shown for symmetry)
+## Forecast logic (`runForecast`)
+For subscription tiers only:
+- **Monthly**: behaves exactly as today — contributes `price` to MRR every month a customer is active.
+- **Yearly**:
+  - On the month a customer is acquired (or renews), recognize the full annual price as **one-time revenue that month** (so cash flow reflects upfront payment, matching how founders actually receive it).
+  - Track an `activeYearly` cohort per tier with a renewal counter; at month 12, 24, … the surviving customers from that cohort generate another upfront charge.
+  - Churn continues to be applied monthly to the active yearly cohort (industry-standard way to model annual churn — customers cancel mid-term but the cash is already booked).
+  - These customers do NOT contribute to MRR (since the cash is lumpy). Instead they contribute to ARR via `annualPrice × activeYearly`.
+- ARR calc updates: `ARR = monthly_MRR × 12 + Σ(yearly_active × yearly_price)`.
+- LTV for yearly: `annualPrice / (monthlyChurn × 12)` so LTV/CAC stays comparable.
 
-4. **Horizontal stacked bar** — 100% width bar segmented into Founder / Investor / Option Pool, color-coded with existing theme colors (use primary, muted-foreground, secondary). Labels show `XX%` inside each segment when width allows, or below.
+## Persistence
+`billingPeriod` rides along in the same `localStorage` blob as the rest of the tier — no migration needed because the field is optional and defaults to monthly.
 
-5. **Info callout** — Alert-style box titled "The option pool trap" explaining that the pool dilutes the founder, not the investor, because it is carved from the pre-money. Example: if investor buys 20% and a 10% pool is created, founder drops to 70% (not 80%).
+## Files to touch
+- `src/lib/forecast.ts` — type + forecast math + KPI updates.
+- `src/components/planner/PricingBuilder.tsx` — toggle UI + suffix.
+- `src/lib/glossary.ts` — add `billing-period` term for the tooltip.
 
-6. **Tooltips** — each input label uses the existing `<Term>` component (like AssumptionsPanel). Add new glossary entries: `raise-amount`, `pre-money`, `option-pool`, `post-money`, `investor-pct`, `founder-pct`.
+## Out of scope (ask if needed)
+- Custom billing periods (quarterly, biennial).
+- Discount for annual vs monthly (e.g. "2 months free") — user can just set the annual price to whatever they actually charge.
+- Deferred revenue accounting (recognizing 1/12 per month for GAAP) — founders modeling cash runway want cash-in, not GAAP revenue.
 
-### State & persistence
-
-- Store `Ownership` shape in a new state object: `{ raise: number; preMoney: number; optionPoolPct: number }`.
-- Default values: `{ raise: 500_000, preMoney: 2_000_000, optionPoolPct: 10 }`.
-- Persist to localStorage under the same `STORAGE_KEY` as the rest of the app (merge into existing object).
-- Reset button on the panel resets to defaults.
-
-### Files to create / edit
-
-| File | Action |
-|---|---|
-| `src/components/planner/OwnershipPanel.tsx` | New component: inputs, calculations, stacked bar, callout |
-| `src/lib/glossary.ts` | Add 6 new glossary entries |
-| `src/routes/index.tsx` | Import panel, add state, wire into layout below VC pitch summary, persist |
-
-### Visual sketch
-
-```text
-+---------------------------------------------------+
-|  Ownership & Dilution                             |
-|                                                   |
-|  [Raise $500K]  [Pre-money $2M]  [Pool ▓▓▓ 10%]   |
-|                                                   |
-|  Post: $2.5M   Investor: 20%   Founder: 70%      |
-|                                                   |
-|  | Founder 70% | Investor 20% | Pool 10% |        |
-|  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ |
-|                                                   |
-|  [i] The option pool trap                         |
-|      The pool is carved from pre-money, so the... |
-+---------------------------------------------------+
-```
-
-### Technical notes
-
-- Reuse existing UI primitives: `Input`, `Label`, `Slider` (from `src/components/ui/`), and `Term`.
-- The stacked bar is a pure CSS flexbox or grid with inline percentage widths — no chart library needed.
-- Calculations are synchronous and local; no server functions or AI calls.
+## One question before I build
+Should yearly revenue show as **one-time cash that month** (matches founder cash reality, what I'd recommend), or **smoothed as 1/12 into MRR each month** (matches SaaS GAAP reporting)? I've planned for the first — let me know if you want the second instead.
