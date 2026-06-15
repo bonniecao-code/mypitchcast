@@ -100,6 +100,26 @@ export function PricingBuilder({ tiers, onChange }: Props) {
                 />
               </div>
 
+              {isSub && (
+                <div className="col-span-12">
+                  <Label className="text-xs text-muted-foreground">
+                    <Term term="billing-period">Billing period</Term>
+                  </Label>
+                  <ToggleGroup
+                    type="single"
+                    value={billing}
+                    onValueChange={(v) => {
+                      if (!v) return;
+                      update(t.id, { billingPeriod: v as BillingPeriod });
+                    }}
+                    className="justify-start"
+                  >
+                    <ToggleGroupItem value="monthly" size="sm" className="text-xs">Monthly</ToggleGroupItem>
+                    <ToggleGroupItem value="yearly" size="sm" className="text-xs">Yearly</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+              )}
+
               {showCogs && (
                 <div className="col-span-6">
                   <Label className="text-xs text-muted-foreground">
