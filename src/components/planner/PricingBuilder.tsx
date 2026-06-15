@@ -38,8 +38,10 @@ export function PricingBuilder({ tiers, onChange }: Props) {
       {tiers.map((t) => {
         const showCogs = t.type === "physical" || t.type === "consumable";
         const showRepurchase = t.type === "consumable";
+        const isSub = t.type === "subscription";
+        const billing: BillingPeriod = t.billingPeriod ?? "monthly";
         const priceSuffix =
-          t.type === "subscription" ? "/mo"
+          isSub ? (billing === "yearly" ? "/yr" : "/mo")
           : t.type === "consumable" ? "/unit"
           : t.type === "free" ? ""
           : " once";
