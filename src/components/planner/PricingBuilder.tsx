@@ -1,10 +1,12 @@
 import { Trash2, Plus } from "lucide-react";
-import { type PricingTier, type TierType, tierTypeMeta } from "@/lib/forecast";
+import { type PricingTier, type TierType, type BillingPeriod, tierTypeMeta } from "@/lib/forecast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Term } from "./Term";
+
 
 type Props = {
   tiers: PricingTier[];
