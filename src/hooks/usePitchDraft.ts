@@ -37,7 +37,7 @@ export function autoPitch(
       (t) =>
         `${t.name} ($${t.price}${
           t.type === "subscription"
-            ? "/mo"
+            ? (t.billingPeriod === "yearly" ? "/yr" : "/mo")
             : t.type === "consumable"
             ? "/refill"
             : t.type === "free"
